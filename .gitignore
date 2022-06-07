@@ -6,6 +6,7 @@
 *.dylib
 *.sqlite
 *.sqlite3
+.envrc
 
 # Test binary, built with `go test -c`
 *.test
