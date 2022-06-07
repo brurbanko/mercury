@@ -54,7 +54,7 @@ func New(cfg Config) *Service {
 }
 
 func handlers(db *sqlx.DB, crawler *crawler.Crawler, l *zerolog.Logger) http.Handler {
-	l.Debug().Msg("Creating handlers")
+	l.Debug().Msg("creating handlers")
 	mux := chi.NewRouter()
 	mux.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, world!"))
@@ -65,7 +65,7 @@ func handlers(db *sqlx.DB, crawler *crawler.Crawler, l *zerolog.Logger) http.Han
 
 // Start the web service
 func (s *Service) Start(ctx context.Context, cancel context.CancelFunc) {
-	s.logger.Info().Msg("Starting server")
+	s.logger.Info().Msg("starting server")
 	go func() {
 		err := s.server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

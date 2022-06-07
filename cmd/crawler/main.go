@@ -69,8 +69,8 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 
 	// like https://github.com/queuedb/queuedb/blob/master/cmd/queuedb/main.go
 	srv := service.New(service.Config{
-		Host:     cfg.HTTP.Host,
-		Port:     cfg.HTTP.Port,
+		Host:     cfg.Server.Host,
+		Port:     cfg.Server.Port,
 		Database: db,
 		Crawler:  bga,
 		Logger:   logger,

@@ -18,12 +18,13 @@ import "github.com/cristalhq/aconfig"
 
 // Config of service
 type Config struct {
-	Debug   bool `env:"DEBUG"`
+	Debug   bool   `env:"DEBUG"`
+	TempDir string `env:"TMP_DIR"`
 	Crawler struct {
 		Domain    string `env:"DOMAIN" default:"bga32.ru"`
 		UserAgent string `env:"USERAGENT" default:"urbanist-public-hearings (https://t.me/public_bryansk_bot)"`
 	}
-	HTTP struct {
+	Server struct {
 		Host string `env:"HOST"`
 		Port string `env:"PORT" default:"8080"`
 	}
