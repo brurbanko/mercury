@@ -19,48 +19,51 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/brurbanko/mercury/internal/crawler"
 	"github.com/go-chi/chi/v5"
-	"github.com/jmoiron/sqlx"
+	"github.com/go-chi/render"
+
+	"github.com/brurbanko/mercury/internal/crawler"
+	"github.com/brurbanko/mercury/internal/database"
+
 	"github.com/rs/zerolog"
 )
 
 // Service is a HTTP server
 type Service struct {
-	server *http.Server
-	logger *zerolog.Logger
+	server   *http.Server
+	logger   *zerolog.Logger
+	database *database.Client
+	crawler  *crawler.Crawler
 }
 
 // Config for creating a new service
 type Config struct {
 	Host     string
 	Port     string
-	Database *sqlx.DB
+	Database *database.Client
 	Crawler  *crawler.Crawler
 	Logger   *zerolog.Logger
+}
+
+// Handler describes router struct
+type handler struct {
+	srv    *Service
+	logger *zerolog.Logger
 }
 
 // New instance of service
 func New(cfg Config) *Service {
 	l := cfg.Logger.With().Str("service", "server").Logger()
 
-	return &Service{
+	srv := &Service{
 		logger: &l,
 		server: &http.Server{
-			Addr:    cfg.Host + ":" + cfg.Port,
-			Handler: handlers(cfg.Database, cfg.Crawler, &l),
+			Addr: cfg.Host + ":" + cfg.Port,
 		},
 	}
-}
+	srv.server.Handler = handlers(srv, &l)
 
-func handlers(db *sqlx.DB, crawler *crawler.Crawler, l *zerolog.Logger) http.Handler {
-	l.Debug().Msg("creating handlers")
-	mux := chi.NewRouter()
-	mux.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, world!"))
-	})
-
-	return mux
+	return srv
 }
 
 // Start the web service
@@ -82,4 +85,33 @@ func (s *Service) Start(ctx context.Context, cancel context.CancelFunc) {
 	if err != nil {
 		s.logger.Err(err).Msg("error shutdown service server")
 	}
+}
+
+func handlers(srv *Service, logger *zerolog.Logger) http.Handler {
+	l := logger.With().Str("component", "handlers").Logger()
+	l.Debug().Msg("creating handlers")
+	mux := chi.NewRouter()
+
+	h := &handler{
+		srv:    srv,
+		logger: &l,
+	}
+
+	mux.Route("/hearings", func(r chi.Router) {
+		r.Get("/", h.listHearings)
+	})
+
+	return mux
+}
+
+func (h *handler) listHearings(w http.ResponseWriter, r *http.Request) {
+	h.srv.logger.Debug().Msg("list hearings")
+	hearings, err := h.srv.Hearings.List(r.Context())
+	if err != nil {
+		h.Errorf("getAllHearings: %+v", err)
+		render.JSON(http.StatusInternalServerError, errorResponse{err.Error()})
+		return
+	}
+
+	render.JSON(http.StatusOK, dataResponse{hearings})
 }

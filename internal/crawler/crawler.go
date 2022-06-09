@@ -39,7 +39,7 @@ func New(domain string, userAgent string) *Crawler {
 	}
 }
 
-// ExtractLinks return all links from passed selector
+// ExtractLinks return all links from passed selector (GetAllLinks)
 func (c *Crawler) ExtractLinks(url, querySelector string) ([]string, error) {
 	links := make([]string, 0)
 	c.collector.OnHTML(querySelector, func(e *colly.HTMLElement) {
@@ -52,7 +52,7 @@ func (c *Crawler) ExtractLinks(url, querySelector string) ([]string, error) {
 	return links, err
 }
 
-// ExtractContent returns content of passed link
+// ExtractContent returns content of passed link (GetSelectorContent)
 func (c *Crawler) ExtractContent(url, querySelector string) ([]string, error) {
 	content := make([]string, 0)
 	// On every a element which has href attribute call callback

@@ -6,6 +6,7 @@ require (
 	github.com/cristalhq/aconfig v0.17.0
 	github.com/glebarez/go-sqlite v1.17.2
 	github.com/go-chi/chi/v5 v5.0.7
+	github.com/go-chi/render v1.0.1
 	github.com/gocolly/colly/v2 v2.1.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/rs/zerolog v1.26.1
