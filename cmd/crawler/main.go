@@ -60,7 +60,7 @@ func main() {
 func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, logger *zerolog.Logger) error {
 	defer cancel()
 
-	db, err := database.New(cfg.Database.DSN)
+	db, err := database.New(cfg.Database.DSN, logger)
 	if err != nil {
 		return fmt.Errorf("failed connect to database: %w", err)
 	}
