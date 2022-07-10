@@ -21,9 +21,9 @@ build: dependencies ## Build development binary file for development server
 dev: dependencies compiledaemon ## Run development server with CompileDaemon
 	@printf "\033[36m%s\033[0m\n" "Starting development server"
 	CompileDaemon -color=true -pattern='$(WATCHFILES)' \
-		-build="make build" -command="./build/$(BINARY)-$(PLATFORM)" \
-		-exclude-dir=".git" -exclude-dir=".idea" -exclude-dir="vendor" \
-		-exclude-dir="data" -exclude-dir="_data" -exclude-dir="build"
+	  -build="make build" -command="./build/$(BINARY)-$(PLATFORM)" \
+	  -exclude-dir=".git" -exclude-dir=".idea" -exclude-dir="vendor" \
+	  -exclude-dir="data" -exclude-dir="build"
 
 dependencies: ## Install dependencies needed for project
 	@printf "\033[36m%s\033[0m\n" "Installing dependencies for project:"
