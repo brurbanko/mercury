@@ -18,9 +18,12 @@ import "time"
 
 // Hearing of BGA32
 type Hearing struct {
-	Topic     []string
-	Proposals []string
-	Place     string
-	URL       string
-	Time      time.Time
+	ID        string    `json:"id"`
+	Topic     []string  `json:"topic"`
+	Proposals []string  `json:"proposals"`
+	Place     string    `json:"place"`
+	URL       string    `json:"url"`
+	Time      time.Time `json:"time"`
+	Published bool      `json:"published"`
+	Raw       string    `json:"raw"`
 }
