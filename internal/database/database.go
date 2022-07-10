@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -35,6 +36,7 @@ const (
 	timeFormat      = "2006-01-02 15:04:05"
 )
 
+// Client to database
 type Client struct {
 	db     *sqlx.DB
 	logger *zerolog.Logger
@@ -48,6 +50,7 @@ type hearing struct {
 	Date      string `json:"date" db:"date"`
 	Proposals string `json:"proposals" db:"proposals"`
 	Published bool   `json:"published" db:"published"`
+	Raw       string `json:"raw" db:"raw"`
 }
 
 // New connection to database
@@ -74,7 +77,7 @@ func New(dsn string, logger *zerolog.Logger) (*Client, error) {
 		return nil, fmt.Errorf("could not open database: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("could not ping database: %w", err)
 	}
 
@@ -92,7 +95,7 @@ func (c *Client) prepareDBFile(filename string) error {
 	fi, err := os.Stat(filename)
 	if err != nil || fi.Size() == 0 {
 		// Создание файла БД
-		f, err := os.Create(filename)
+		f, err := os.Create(path.Clean(filename))
 		if err != nil {
 			return fmt.Errorf("could not create database file: %w", err)
 		}
@@ -115,7 +118,16 @@ func (c *Client) prepareSchema() error {
 	c.logger.Info().Msgf("database current schema version: %d", version)
 
 	queries := []string{
-		"CREATE TABLE IF NOT EXISTS hearings(id INTEGER PRIMARY KEY, link TEXT DEFAULT '' NOT NULL UNIQUE, topics TEXT DEFAULT '', proposals TEXT DEFAULT '', place TEXT DEFAULT '', date TEXT DEFAULT '1970-01-01 00:00:00', published BOOLEAN DEFAULT false",
+		`CREATE TABLE IF NOT EXISTS hearings(
+			id INTEGER PRIMARY KEY,
+			link TEXT DEFAULT '' NOT NULL UNIQUE,
+			topics TEXT DEFAULT '',
+			proposals TEXT DEFAULT '',
+			place TEXT DEFAULT '',
+			date TEXT DEFAULT '1970-01-01 00:00:00',
+			published BOOLEAN DEFAULT false,
+			raw TEXT DEFAULT ''
+		)`,
 	}
 
 	if version == len(queries) {
@@ -126,7 +138,7 @@ func (c *Client) prepareSchema() error {
 	c.logger.Info().Msg("upgrading database schema...")
 
 	for i := version; i < len(queries); i++ {
-		c.logger.Debug().Msgf("database executing query:", queries[i])
+		c.logger.Debug().Msgf("database executing query: %s", queries[i])
 		_, err = c.db.Exec(queries[i])
 		if err != nil {
 			return fmt.Errorf("could not execute query: %w", err)
@@ -135,7 +147,7 @@ func (c *Client) prepareSchema() error {
 		if err != nil {
 			return fmt.Errorf("could not set schema version: %w", err)
 		}
-		c.logger.Debug().Msgf("database schema version:", i+1)
+		c.logger.Debug().Msgf("database schema version: %d", i+1)
 	}
 	c.logger.Info().Msg("database schema is up to date")
 	return nil
@@ -160,7 +172,7 @@ func (c *Client) setSchemaVersion(version int) error {
 
 // Create new hearing in database
 func (c *Client) Create(ctx context.Context, publicHearing domain.Hearing) error {
-	query := "INSERT INTO hearings(link,topics,proposals,place,date) VALUES($1, $2, $3, $4, $5)"
+	query := "INSERT INTO hearings(link,topics,proposals,place,date,raw) VALUES($1, $2, $3, $4, $5,$6)"
 	_, err := c.db.ExecContext(
 		ctx,
 		query,
@@ -169,6 +181,7 @@ func (c *Client) Create(ctx context.Context, publicHearing domain.Hearing) error
 		strings.Join(publicHearing.Proposals, topicsDelimiter),
 		publicHearing.Place,
 		publicHearing.Time.Format(timeFormat),
+		publicHearing.Raw,
 	)
 	return err
 }
@@ -211,7 +224,7 @@ func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing, publi
 func (c *Client) GetOne(ctx context.Context, link string) (domain.Hearing, error) {
 	tempHearing := &hearing{}
 	hp := domain.Hearing{}
-	query := "SELECT id, link, topics, proposals, place, date, published FROM hearings WHERE link = $1"
+	query := "SELECT id, link, topics, proposals, place, date, published, raw FROM hearings WHERE link = $1"
 	err := c.db.QueryRowxContext(ctx, query, link).StructScan(tempHearing)
 	if err != nil {
 		return hp, err
@@ -221,6 +234,8 @@ func (c *Client) GetOne(ctx context.Context, link string) (domain.Hearing, error
 	hp.Place = tempHearing.Place
 	hp.Topic = strings.Split(tempHearing.Topics, topicsDelimiter)
 	hp.Proposals = strings.Split(tempHearing.Proposals, topicsDelimiter)
+	hp.Published = tempHearing.Published
+	hp.Raw = tempHearing.Raw
 
 	return hp, nil
 }
@@ -229,7 +244,7 @@ func (c *Client) GetOne(ctx context.Context, link string) (domain.Hearing, error
 func (c *Client) Get(ctx context.Context) ([]domain.Hearing, error) {
 	tempHearings := make([]hearing, 0)
 	res := make([]domain.Hearing, 0)
-	query := "SELECT id, link, topics, proposals, place, date as date, published FROM hearings ORDER BY date"
+	query := "SELECT id, link, topics, proposals, place, date as date, published, raw FROM hearings ORDER BY date"
 	err := c.db.SelectContext(ctx, &tempHearings, query)
 	if err != nil {
 		return res, err
@@ -244,6 +259,8 @@ func (c *Client) Get(ctx context.Context) ([]domain.Hearing, error) {
 		hp.Place = th.Place
 		hp.Topic = strings.Split(th.Topics, topicsDelimiter)
 		hp.Proposals = strings.Split(th.Proposals, topicsDelimiter)
+		hp.Published = th.Published
+		hp.Raw = th.Raw
 		res = append(res, hp)
 	}
 
