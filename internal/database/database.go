@@ -90,6 +90,10 @@ func New(dsn string, logger *zerolog.Logger) (*Client, error) {
 	return client, nil
 }
 
+func (c *Client) Close() error {
+	return c.db.Close()
+}
+
 func (c *Client) prepareDBFile(filename string) error {
 	// Проверка существования файла БД
 	fi, err := os.Stat(filename)

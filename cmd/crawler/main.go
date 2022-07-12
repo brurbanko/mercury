@@ -65,6 +65,11 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 	if err != nil {
 		return fmt.Errorf("failed connect to database: %w", err)
 	}
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			logger.Error().Err(cerr).Msg("failed close database")
+		}
+	}()
 
 	bga := crawler.New(cfg.Crawler.Domain, cfg.Crawler.UserAgent)
 
