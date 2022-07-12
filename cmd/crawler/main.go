@@ -20,8 +20,9 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/brurbanko/mercury/pkg/crawler"
+
 	"github.com/brurbanko/mercury/internal/config"
-	"github.com/brurbanko/mercury/internal/crawler"
 	"github.com/brurbanko/mercury/internal/database"
 	"github.com/brurbanko/mercury/internal/service"
 

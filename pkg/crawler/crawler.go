@@ -26,7 +26,7 @@ type Crawler struct {
 }
 
 // New returns Crawler instance
-func New(domain string, userAgent string) *Crawler {
+func New(domain, userAgent string) *Crawler {
 	col := colly.NewCollector(
 		colly.AllowedDomains(domain),
 		colly.MaxDepth(1),
@@ -55,7 +55,7 @@ func (c *Crawler) ExtractLinks(url, querySelector string) ([]string, error) {
 // ExtractContent returns content of passed link (GetSelectorContent)
 func (c *Crawler) ExtractContent(url, querySelector string) ([]string, error) {
 	content := make([]string, 0)
-	// On every a element which has href attribute call callback
+	// On every an element which has href attribute call callback
 	c.collector.OnHTML(querySelector, func(e *colly.HTMLElement) {
 		// Paragraph content length is greater 2 bytes
 		if len(e.Text) > 2 {

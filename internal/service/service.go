@@ -19,16 +19,17 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/brurbanko/mercury/pkg/crawler"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 
-	"github.com/brurbanko/mercury/internal/crawler"
 	"github.com/brurbanko/mercury/internal/database"
 
 	"github.com/rs/zerolog"
 )
 
-// Service is a HTTP server
+// Service is HTTP server
 type Service struct {
 	server   *http.Server
 	logger   *zerolog.Logger
