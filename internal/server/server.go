@@ -12,63 +12,54 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-package service
+package server
 
 import (
 	"context"
 	"errors"
 	"net/http"
 
-	"github.com/brurbanko/mercury/pkg/crawler"
-
+	"github.com/brurbanko/mercury/internal/hearings"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-
-	"github.com/brurbanko/mercury/internal/database"
 
 	"github.com/rs/zerolog"
 )
 
-// Service is HTTP server
-type Service struct {
+// Server is HTTP server
+type Server struct {
 	server   *http.Server
 	logger   *zerolog.Logger
-	database *database.Client
-	crawler  *crawler.Crawler
+	hearings *hearings.Service
 }
 
-// Config for creating a new service
+// Config for creating a new http server
 type Config struct {
 	Host     string
 	Port     string
-	Database *database.Client
-	Crawler  *crawler.Crawler
 	Logger   *zerolog.Logger
-}
-
-// Handler describes router struct
-type handler struct {
-	srv    *Service
-	logger *zerolog.Logger
+	Hearings *hearings.Service
 }
 
 // New instance of service
-func New(cfg Config) *Service {
-	l := cfg.Logger.With().Str("service", "server").Logger()
+func New(cfg Config) *Server {
+	l := cfg.Logger.With().Str("server", "http").Logger()
 
-	srv := &Service{
+	s := &Server{
 		logger: &l,
 		server: &http.Server{
 			Addr: cfg.Host + ":" + cfg.Port,
 		},
+		hearings: cfg.Hearings,
 	}
-	srv.server.Handler = handlers(srv, &l)
 
-	return srv
+	s.initRouter()
+
+	return s
 }
 
 // Start the web service
-func (s *Service) Start(ctx context.Context, cancel context.CancelFunc) {
+func (s *Server) Start(ctx context.Context, cancel context.CancelFunc) {
 	s.logger.Info().Msg("starting server")
 	go func() {
 		err := s.server.ListenAndServe()
@@ -88,31 +79,33 @@ func (s *Service) Start(ctx context.Context, cancel context.CancelFunc) {
 	}
 }
 
-func handlers(srv *Service, logger *zerolog.Logger) http.Handler {
-	l := logger.With().Str("component", "handlers").Logger()
-	l.Debug().Msg("creating handlers")
+func (s *Server) initRouter() {
 	mux := chi.NewRouter()
-
-	h := &handler{
-		srv:    srv,
-		logger: &l,
-	}
-
 	mux.Route("/hearings", func(r chi.Router) {
-		r.Get("/", h.listHearings)
+		r.Get("/", s.listHearings)
 	})
 
-	return mux
+	s.server.Handler = mux
 }
 
-func (h *handler) listHearings(w http.ResponseWriter, r *http.Request) {
-	h.srv.logger.Debug().Msg("list hearings")
-	hearings, err := h.srv.Hearings.List(r.Context())
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
+type dataResponse struct {
+	Data interface{} `json:"data"`
+}
+
+func (s *Server) listHearings(w http.ResponseWriter, r *http.Request) {
+	s.logger.Debug().Msg("list hearings")
+	h, err := s.hearings.List(r.Context())
 	if err != nil {
-		h.Errorf("getAllHearings: %+v", err)
-		render.JSON(http.StatusInternalServerError, errorResponse{err.Error()})
+		s.logger.Err(err).Msg("error list hearings")
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, errorResponse{err.Error()})
 		return
 	}
 
-	render.JSON(http.StatusOK, dataResponse{hearings})
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, dataResponse{h})
 }

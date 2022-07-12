@@ -32,22 +32,31 @@ import (
 
 var fid uint64
 
-// Service of hearing	management
+// Service to manage public hearings
 type Service struct {
 	logger  *zerolog.Logger
 	crawler *crawler.Crawler
 	parser  *Parser
 	db      *database.Client
-	tmpPath string
+	tempDir string
 }
 
-func New(cr *crawler.Crawler, db *database.Client, tmp string, logger *zerolog.Logger) *Service {
-	l := logger.With().Str("service", "hearings").Logger()
+// Config for hearings service
+type Config struct {
+	Database *database.Client
+	Crawler  *crawler.Crawler
+	Logger   *zerolog.Logger
+	TempDir  string
+}
+
+// New returns an instance of hearings service
+func New(cfg *Config) *Service {
+	l := cfg.Logger.With().Str("service", "hearings").Logger()
 	return &Service{
 		logger:  &l,
-		crawler: cr,
-		db:      db,
-		tmpPath: tmp,
+		crawler: cfg.Crawler,
+		db:      cfg.Database,
+		tempDir: cfg.TempDir,
 		parser:  NewParser(),
 	}
 }
@@ -109,12 +118,12 @@ func (s *Service) Save(ctx context.Context, hearing *domain.Hearing) error {
 }
 
 func (s *Service) storeTempContent(link string, content []string) error {
-	if s.tmpPath == "" {
+	if s.tempDir == "" {
 		return nil
 	}
 	ts := time.Now().UnixNano() / int64(time.Millisecond)
 	id := atomic.AddUint64(&fid, 1)
-	fp := path.Join(s.tmpPath, fmt.Sprintf("%d.%d.txt", ts, id))
+	fp := path.Join(s.tempDir, fmt.Sprintf("%d.%d.txt", ts, id))
 	f, err := os.Create(path.Clean(fp))
 	if err != nil {
 		return err
@@ -146,11 +155,11 @@ func (s *Service) loadTempContent(fileName string) (content []string, link strin
 	if fileName == "" {
 		return content, link, fmt.Errorf("empty file name")
 	}
-	if s.tmpPath == "" {
+	if s.tempDir == "" {
 		return content, link, fmt.Errorf("empty tmpPathorary storage")
 	}
 
-	file := path.Join(s.tmpPath, fileName)
+	file := path.Join(s.tempDir, fileName)
 
 	f, err := os.OpenFile(path.Clean(file), os.O_RDONLY, os.ModePerm)
 	if err != nil {

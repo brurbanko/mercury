@@ -91,6 +91,7 @@ func New(dsn string, logger *zerolog.Logger) (*Client, error) {
 }
 
 func (c *Client) Close() error {
+	c.logger.Info().Msg("closing database connection")
 	return c.db.Close()
 }
 

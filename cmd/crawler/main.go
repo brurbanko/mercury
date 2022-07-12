@@ -20,11 +20,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/brurbanko/mercury/internal/hearings"
+	"github.com/brurbanko/mercury/internal/server"
+
 	"github.com/brurbanko/mercury/pkg/crawler"
 
 	"github.com/brurbanko/mercury/internal/config"
 	"github.com/brurbanko/mercury/internal/database"
-	"github.com/brurbanko/mercury/internal/service"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -73,16 +75,21 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 
 	bga := crawler.New(cfg.Crawler.Domain, cfg.Crawler.UserAgent)
 
-	// like https://github.com/queuedb/queuedb/blob/master/cmd/queuedb/main.go
-	srv := service.New(service.Config{
-		Host:     cfg.Server.Host,
-		Port:     cfg.Server.Port,
+	srv := hearings.New(&hearings.Config{
 		Database: db,
 		Crawler:  bga,
 		Logger:   logger,
+		TempDir:  cfg.TempDir,
 	})
 
-	go srv.Start(ctx, cancel)
+	http := server.New(server.Config{
+		Host:     cfg.Server.Host,
+		Port:     cfg.Server.Port,
+		Logger:   logger,
+		Hearings: srv,
+	})
+
+	go http.Start(ctx, cancel)
 
 	<-ctx.Done()
 
