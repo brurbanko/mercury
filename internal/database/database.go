@@ -178,7 +178,7 @@ func (c *Client) setSchemaVersion(version int) error {
 
 // Create new hearing in database
 func (c *Client) Create(ctx context.Context, publicHearing domain.Hearing) error {
-	query := "INSERT INTO hearings(link,topics,proposals,place,date,raw) VALUES($1, $2, $3, $4, $5,$6)"
+	query := "INSERT INTO hearings(link,topics,proposals,place,date,raw) VALUES($1, $2, $3, $4, $5, $6)"
 	_, err := c.db.ExecContext(
 		ctx,
 		query,
@@ -198,7 +198,7 @@ func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing, publi
 		return fmt.Errorf("cannot update hearing: empty link")
 	}
 
-	currentHearing, err := c.GetOne(ctx, publicHearing.URL)
+	currentHearing, err := c.Find(ctx, publicHearing.URL)
 	if err != nil {
 		return err
 	}
@@ -226,8 +226,8 @@ func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing, publi
 	return err
 }
 
-// GetOne returns one hearing from database
-func (c *Client) GetOne(ctx context.Context, link string) (domain.Hearing, error) {
+// Find one hearing in database
+func (c *Client) Find(ctx context.Context, link string) (domain.Hearing, error) {
 	tempHearing := &hearing{}
 	hp := domain.Hearing{}
 	query := "SELECT id, link, topics, proposals, place, date, published, raw FROM hearings WHERE link = $1"
@@ -246,8 +246,8 @@ func (c *Client) GetOne(ctx context.Context, link string) (domain.Hearing, error
 	return hp, nil
 }
 
-// Get return all hearings from database
-func (c *Client) Get(ctx context.Context) ([]domain.Hearing, error) {
+// List all hearings in database
+func (c *Client) List(ctx context.Context) ([]domain.Hearing, error) {
 	tempHearings := make([]hearing, 0)
 	res := make([]domain.Hearing, 0)
 	query := "SELECT id, link, topics, proposals, place, date as date, published, raw FROM hearings ORDER BY date"

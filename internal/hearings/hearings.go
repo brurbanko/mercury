@@ -63,7 +63,7 @@ func New(cfg *Config) *Service {
 
 // List of hearings (Cached)
 func (s *Service) List(ctx context.Context) ([]domain.Hearing, error) {
-	links, err := s.db.Get(ctx)
+	links, err := s.db.List(ctx)
 
 	// Reverse slice. Older links will be at begin
 	for i, j := 0, len(links)-1; i < j; i, j = i+1, j-1 {
@@ -108,7 +108,7 @@ func (s *Service) Fetch(link string) (*domain.Hearing, error) {
 
 // Find public hearing by URL
 func (s *Service) Find(ctx context.Context, link string) (*domain.Hearing, error) {
-	hearing, err := s.db.GetOne(ctx, link)
+	hearing, err := s.db.Find(ctx, link)
 	return &hearing, err
 }
 
