@@ -80,13 +80,13 @@ func New(dsn string, logger *zerolog.Logger) (*Client, error) {
 	if err = db.Ping(); err != nil {
 		return nil, fmt.Errorf("could not ping database: %w", err)
 	}
+	client.db = db
 
 	err = client.prepareSchema()
 	if err != nil {
 		return nil, fmt.Errorf("could not prepare schema: %w", err)
 	}
 
-	client.db = db
 	return client, nil
 }
 
