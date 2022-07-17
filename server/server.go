@@ -92,6 +92,7 @@ func (s *Server) initRouter(token string) {
 
 	mux.Route("/hearings", func(r chi.Router) {
 		r.Get("/", s.listHearings)
+		r.Get("/new", s.newHearing)
 	})
 
 	s.server.Handler = mux
@@ -135,6 +136,20 @@ func (s *Server) listHearings(w http.ResponseWriter, r *http.Request) {
 	h, err := s.hearings.List(r.Context())
 	if err != nil {
 		s.logger.Err(err).Msg("error list hearings")
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, errorResponse{err.Error()})
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, dataResponse{h})
+}
+
+func (s *Server) newHearing(w http.ResponseWriter, r *http.Request) {
+	s.logger.Debug().Msg("new hearing")
+	h, err := s.hearings.FindNew(r.Context())
+	if err != nil {
+		s.logger.Err(err).Msg("error new hearing")
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{err.Error()})
 		return

@@ -15,13 +15,7 @@
 package hearings
 
 import (
-	"bufio"
 	"context"
-	"fmt"
-	"os"
-	"path"
-	"sync/atomic"
-	"time"
 
 	"github.com/brurbanko/mercury/database"
 	"github.com/brurbanko/mercury/domain"
@@ -39,7 +33,6 @@ type Service struct {
 	crawler *crawler.Crawler
 	parser  *Parser
 	db      *database.Client
-	tempDir string
 }
 
 // Config for hearings service
@@ -47,7 +40,6 @@ type Config struct {
 	Database *database.Client
 	Crawler  *crawler.Crawler
 	Logger   *zerolog.Logger
-	TempDir  string
 }
 
 // New returns an instance of hearings service
@@ -57,7 +49,6 @@ func New(cfg *Config) *Service {
 		logger:  &l,
 		crawler: cfg.Crawler,
 		db:      cfg.Database,
-		tempDir: cfg.TempDir,
 		parser:  NewParser(),
 	}
 }
@@ -71,6 +62,31 @@ func (s *Service) List(ctx context.Context) ([]domain.Hearing, error) {
 		links[i], links[j] = links[j], links[i]
 	}
 	return links, err
+}
+
+func (s *Service) FindNew(ctx context.Context) ([]domain.Hearing, error) {
+	links, err := s.FetchLinks()
+	if err != nil {
+		return nil, err
+	}
+	var hearings []domain.Hearing
+	for _, link := range links {
+		_, err := s.Find(ctx, link)
+		if err != nil {
+			hearing, ferr := s.Fetch(link)
+			if ferr != nil {
+				s.logger.Err(ferr).Msg("Failed to fetch hearing")
+				continue
+			}
+			serr := s.Save(ctx, hearing)
+			if serr != nil {
+				s.logger.Err(serr).Msg("Failed to save hearing")
+				continue
+			}
+			hearings = append(hearings, *hearing)
+		}
+	}
+	return hearings, nil
 }
 
 // FetchLinks of public hearings
@@ -92,10 +108,6 @@ func (s *Service) Fetch(link string) (*domain.Hearing, error) {
 			URL: link,
 		}, err
 	}
-	err = s.storeTempContent(link, content)
-	if err != nil {
-		s.logger.Error().Err(err).Msg("failed store temporary content")
-	}
 
 	hearing, err := s.parser.Content(content)
 	if err != nil {
@@ -116,70 +128,4 @@ func (s *Service) Find(ctx context.Context, link string) (*domain.Hearing, error
 // Save information about public hearing in database
 func (s *Service) Save(ctx context.Context, hearing *domain.Hearing) error {
 	return s.db.Create(ctx, *hearing)
-}
-
-func (s *Service) storeTempContent(link string, content []string) error {
-	if s.tempDir == "" {
-		return nil
-	}
-	ts := time.Now().UnixNano() / int64(time.Millisecond)
-	id := atomic.AddUint64(&fid, 1)
-	fp := path.Join(s.tempDir, fmt.Sprintf("%d.%d.txt", ts, id))
-	f, err := os.Create(path.Clean(fp))
-	if err != nil {
-		return err
-	}
-	defer func() { _ = f.Close() }()
-
-	// write link
-	_, err = f.WriteString(link + "\n")
-	if err != nil {
-		return err
-	}
-
-	// write content
-	for _, s := range content {
-		_, err = f.WriteString(s + "\n")
-		if err != nil {
-			return err
-		}
-	}
-	err = f.Sync()
-	if err != nil {
-		return err
-	}
-
-	return f.Close()
-}
-
-func (s *Service) loadTempContent(fileName string) (content []string, link string, err error) {
-	if fileName == "" {
-		return content, link, fmt.Errorf("empty file name")
-	}
-	if s.tempDir == "" {
-		return content, link, fmt.Errorf("empty tmpPathorary storage")
-	}
-
-	file := path.Join(s.tempDir, fileName)
-
-	f, err := os.OpenFile(path.Clean(file), os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return content, link, err
-	}
-	defer func() { _ = f.Close() }()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		content = append(content, scanner.Text())
-	}
-	if len(content) > 0 {
-		link = content[0]
-		content = content[1:]
-	}
-
-	if err := scanner.Err(); err != nil {
-		return content, link, err
-	}
-
-	return content, link, nil
 }
