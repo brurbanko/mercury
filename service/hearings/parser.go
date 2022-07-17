@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/brurbanko/mercury/internal/domain"
+	"github.com/brurbanko/mercury/domain"
 )
 
 var spaces = `[\t\n\v\f\r\p{Zs}]`

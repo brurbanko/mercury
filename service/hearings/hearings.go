@@ -23,10 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/brurbanko/mercury/database"
+	"github.com/brurbanko/mercury/domain"
+
 	"github.com/brurbanko/mercury/pkg/crawler"
 
-	"github.com/brurbanko/mercury/internal/database"
-	"github.com/brurbanko/mercury/internal/domain"
 	"github.com/rs/zerolog"
 )
 

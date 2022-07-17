@@ -19,7 +19,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/brurbanko/mercury/internal/hearings"
+	"github.com/brurbanko/mercury/service/hearings"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 
@@ -60,7 +60,7 @@ func New(cfg Config) *Server {
 
 // Start the web service
 func (s *Server) Start(ctx context.Context, cancel context.CancelFunc) {
-	s.logger.Info().Msg("starting server")
+	s.logger.Info().Msg("starting http server")
 	go func() {
 		err := s.server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -68,6 +68,8 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc) {
 			cancel()
 		}
 	}()
+
+	s.logger.Info().Msgf("http server listening at %s", s.server.Addr)
 
 	<-ctx.Done()
 

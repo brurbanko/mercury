@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brurbanko/mercury/internal/domain"
+	"github.com/brurbanko/mercury/domain"
 
 	"github.com/rs/zerolog"
 

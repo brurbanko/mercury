@@ -20,13 +20,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/brurbanko/mercury/internal/hearings"
-	"github.com/brurbanko/mercury/internal/server"
+	"github.com/brurbanko/mercury/config"
+	"github.com/brurbanko/mercury/database"
+	"github.com/brurbanko/mercury/server"
 
 	"github.com/brurbanko/mercury/pkg/crawler"
-
-	"github.com/brurbanko/mercury/internal/config"
-	"github.com/brurbanko/mercury/internal/database"
+	"github.com/brurbanko/mercury/service/hearings"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
