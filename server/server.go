@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/brurbanko/mercury/service/hearings"
 	"github.com/go-chi/chi/v5"
@@ -37,6 +38,7 @@ type Server struct {
 type Config struct {
 	Host     string
 	Port     string
+	Token    string
 	Logger   *zerolog.Logger
 	Hearings *hearings.Service
 }
@@ -53,7 +55,7 @@ func New(cfg Config) *Server {
 		hearings: cfg.Hearings,
 	}
 
-	s.initRouter()
+	s.initRouter(cfg.Token)
 
 	return s
 }
@@ -81,13 +83,43 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc) {
 	}
 }
 
-func (s *Server) initRouter() {
+func (s *Server) initRouter(token string) {
 	mux := chi.NewRouter()
+
+	if token != "" {
+		mux.Use(s.authTokenMiddleware(token))
+	}
+
 	mux.Route("/hearings", func(r chi.Router) {
 		r.Get("/", s.listHearings)
 	})
 
 	s.server.Handler = mux
+}
+
+func (s *Server) authTokenMiddleware(token string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			header := r.Header.Get("Authorization")
+
+			if header == "" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			// remove bearer prefix
+			if strings.HasPrefix(strings.ToLower(header), "bearer ") {
+				header = header[7:]
+			}
+
+			if header != token {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 type errorResponse struct {

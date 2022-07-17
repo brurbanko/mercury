@@ -25,8 +25,9 @@ type Config struct {
 		UserAgent string `env:"USERAGENT" default:"urbanist-public-hearings (https://t.me/public_bryansk_bot)"`
 	}
 	Server struct {
-		Host string `env:"HOST"`
-		Port string `env:"PORT" default:"8080"`
+		Host  string `env:"HOST"`
+		Port  string `env:"PORT" default:"8080"`
+		Token string `env:"TOKEN"`
 	}
 	Database struct {
 		DSN string `env:"DATABASE_DSN" default:"database"`

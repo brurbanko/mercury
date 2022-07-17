@@ -84,6 +84,7 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 	http := server.New(server.Config{
 		Host:     cfg.Server.Host,
 		Port:     cfg.Server.Port,
+		Token:    cfg.Server.Token,
 		Logger:   logger,
 		Hearings: srv,
 	})
