@@ -14,26 +14,23 @@ endif
 .DEFAULT_GOAL := help
 
 debugbuild: dependencies
-	@mkdir -p build
-	GOOS=darwin             go build -gcflags="all=-N -l" -o build/$(BINARY)-darwin cmd/crawler/main.go
-	GOOS=linux GOARCH=amd64 go build -gcflags="all=-N -l" -o build/$(BINARY)-linux cmd/crawler/main.go
 
-debug: dependencies compiledaemon delve ## Run debug server with delve debugger
+debug: dependencies delve ## Run debug server with delve debugger
 	@printf "\033[36m%s\033[0m\n" "Starting debugging server"
-	CompileDaemon -color=true -pattern='$(WATCHFILES)' \
-	  -build="make debugbuild" -command="dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec ./build/$(BINARY)-$(PLATFORM)" \
-	  -exclude-dir=".git" -exclude-dir=".idea" -exclude-dir="vendor" \
-	  -exclude-dir="data" -exclude-dir="build"
+	@mkdir -p build
+	GOOS=darwin             go build -gcflags="all=-N -l" -o build/$(BINARY)-debug-darwin cmd/crawler/main.go
+	GOOS=linux GOARCH=amd64 go build -gcflags="all=-N -l" -o build/$(BINARY)-debug-linux cmd/crawler/main.go
+	dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec ./build/$(BINARY)-debug-$(PLATFORM)
 
-dist: dependencies ## Build production binary file for production server
-	@mkdir -p dist
+build: dependencies ## Build production binary file for production server
+	@mkdir -p build
 	GOOS=darwin             go build -ldflags $(BUILDFLAGS) -o dist/$(BINARY)-darwin cmd/crawler/main.go
 	GOOS=linux GOARCH=amd64 go build -ldflags $(BUILDFLAGS) -o dist/$(BINARY)-linux cmd/crawler/main.go
 
 dev: dependencies compiledaemon ## Run development server with CompileDaemon
 	@printf "\033[36m%s\033[0m\n" "Starting development server"
 	CompileDaemon -color=true -pattern='$(WATCHFILES)' \
-	  -build="make dist" -command="./build/$(BINARY)-$(PLATFORM)" \
+	  -build="make build" -command="./build/$(BINARY)-$(PLATFORM)" \
 	  -exclude-dir=".git" -exclude-dir=".idea" -exclude-dir="vendor" \
 	  -exclude-dir="data" -exclude-dir="build"
 
