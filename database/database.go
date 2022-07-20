@@ -193,7 +193,7 @@ func (c *Client) Create(ctx context.Context, publicHearing domain.Hearing) error
 }
 
 // Update hearing in database
-func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing, published bool) error {
+func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing) error {
 	if publicHearing.URL == "" {
 		return fmt.Errorf("cannot update hearing: empty link")
 	}
@@ -206,6 +206,9 @@ func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing, publi
 	topic := publicHearing.Topic
 	place := publicHearing.Place
 	date := publicHearing.Time
+	published := publicHearing.Published
+	proposals := publicHearing.Proposals
+	raw := publicHearing.Raw
 
 	if len(topic) == 0 {
 		topic = currentHearing.Topic
@@ -220,8 +223,20 @@ func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing, publi
 	}
 	dateStr := date.Format(timeFormat)
 
-	query := "UPDATE hearings SET topic = $2, place = $3, date = $4, published = $5 WHERE link = $1"
-	_, err = c.db.ExecContext(ctx, query, publicHearing.URL, topic, place, dateStr, published)
+	if !published {
+		published = currentHearing.Published
+	}
+
+	if len(proposals) == 0 {
+		proposals = currentHearing.Proposals
+	}
+
+	if len(raw) == 0 {
+		raw = currentHearing.Raw
+	}
+
+	query := "UPDATE hearings SET topic = $2, place = $3, date = $4, published = $5, proposals = $6, raw = $7 WHERE link = $1"
+	_, err = c.db.ExecContext(ctx, query, publicHearing.URL, topic, place, dateStr, published, proposals, raw)
 
 	return err
 }

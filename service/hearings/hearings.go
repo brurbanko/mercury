@@ -86,34 +86,37 @@ func (s *Service) FetchLinks(ctx context.Context) ([]string, error) {
 }
 
 // Fetch information about public hearing from site
-func (s *Service) Fetch(ctx context.Context, link string) (*domain.Hearing, error) {
+func (s *Service) Fetch(ctx context.Context, link string) (domain.Hearing, error) {
+	l := s.logger.With().
+		Str("method", "Fetch").
+		Str("link", link).
+		Logger()
+	hearing := domain.Hearing{URL: link}
 	content, err := s.scrapper.ExtractContent(ctx, link, ".thecontent p", false)
 	if err != nil {
-		return &domain.Hearing{
-			URL: link,
-			Raw: content,
-		}, err
+		l.Error().Err(err).Msg("failed to extract content")
+		return hearing, err
+	}
+	hearing.Raw = content
+
+	err = s.db.Create(ctx, hearing)
+	if err != nil {
+		l.Error().Err(err).Msg("failed to save hearing")
+		return hearing, err
 	}
 
-	hearing, err := s.parser.Content(content)
-	if err != nil {
-		return &domain.Hearing{
-			URL: link,
-		}, err
-	}
+	hearing, err = s.parser.Content(content)
 	hearing.URL = link
+	if err != nil {
+		l.Error().Err(err).Msg("failed to parse hearing content")
+		return hearing, err
+	}
 	return hearing, nil
 }
 
 // Find public hearing by URL
-func (s *Service) Find(ctx context.Context, link string) (*domain.Hearing, error) {
-	hearing, err := s.db.Find(ctx, link)
-	return &hearing, err
-}
-
-// Save information about public hearing in database
-func (s *Service) Save(ctx context.Context, hearing *domain.Hearing) error {
-	return s.db.Create(ctx, *hearing)
+func (s *Service) Find(ctx context.Context, link string) (domain.Hearing, error) {
+	return s.db.Find(ctx, link)
 }
 
 func (s *Service) FindUnpublished(_ context.Context) ([]domain.Hearing, error) {
