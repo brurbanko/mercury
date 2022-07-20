@@ -24,8 +24,8 @@ debug: dependencies delve ## Run debug server with delve debugger
 
 build: dependencies ## Build production binary file for production server
 	@mkdir -p build
-	GOOS=darwin             go build -ldflags $(BUILDFLAGS) -o dist/$(BINARY)-darwin cmd/crawler/main.go
-	GOOS=linux GOARCH=amd64 go build -ldflags $(BUILDFLAGS) -o dist/$(BINARY)-linux cmd/crawler/main.go
+	GOOS=darwin             go build -ldflags $(BUILDFLAGS) -o build/$(BINARY)-darwin cmd/crawler/main.go
+	GOOS=linux GOARCH=amd64 go build -ldflags $(BUILDFLAGS) -o build/$(BINARY)-linux cmd/crawler/main.go
 
 dev: dependencies compiledaemon ## Run development server with CompileDaemon
 	@printf "\033[36m%s\033[0m\n" "Starting development server"
