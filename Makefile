@@ -13,15 +13,27 @@ endif
 
 .DEFAULT_GOAL := help
 
-build: dependencies ## Build development binary file for development server
+debugbuild: dependencies
 	@mkdir -p build
-	GOOS=darwin             go build -ldflags $(BUILDFLAGS) -o build/$(BINARY)-darwin cmd/crawler/main.go
-	GOOS=linux GOARCH=amd64 go build -ldflags $(BUILDFLAGS) -o build/$(BINARY)-linux cmd/crawler/main.go
+	GOOS=darwin             go build -gcflags="all=-N -l" -o build/$(BINARY)-darwin cmd/crawler/main.go
+	GOOS=linux GOARCH=amd64 go build -gcflags="all=-N -l" -o build/$(BINARY)-linux cmd/crawler/main.go
+
+debug: dependencies compiledaemon delve ## Run debug server with delve debugger
+	@printf "\033[36m%s\033[0m\n" "Starting debugging server"
+	CompileDaemon -color=true -pattern='$(WATCHFILES)' \
+	  -build="make debugbuild" -command="dlv --listen=:2345 --headless=true --api-version=2 --accept-multiclient exec ./build/$(BINARY)-$(PLATFORM)" \
+	  -exclude-dir=".git" -exclude-dir=".idea" -exclude-dir="vendor" \
+	  -exclude-dir="data" -exclude-dir="build"
+
+dist: dependencies ## Build production binary file for production server
+	@mkdir -p dist
+	GOOS=darwin             go build -ldflags $(BUILDFLAGS) -o dist/$(BINARY)-darwin cmd/crawler/main.go
+	GOOS=linux GOARCH=amd64 go build -ldflags $(BUILDFLAGS) -o dist/$(BINARY)-linux cmd/crawler/main.go
 
 dev: dependencies compiledaemon ## Run development server with CompileDaemon
 	@printf "\033[36m%s\033[0m\n" "Starting development server"
 	CompileDaemon -color=true -pattern='$(WATCHFILES)' \
-	  -build="make build" -command="./build/$(BINARY)-$(PLATFORM)" \
+	  -build="make dist" -command="./build/$(BINARY)-$(PLATFORM)" \
 	  -exclude-dir=".git" -exclude-dir=".idea" -exclude-dir="vendor" \
 	  -exclude-dir="data" -exclude-dir="build"
 
@@ -35,6 +47,12 @@ compiledaemon:
 ifeq (, $(shell which CompileDaemon))
 	@printf "\033[36m%s\033[0m\n" "Installing compile daemon..."
 	go get -v -u github.com/githubnemo/CompileDaemon
+endif
+
+delve:
+ifeq (, $(shell which dlv))
+	@printf "\033[36m%s\033[0m\n" "Installing delve debugger..."
+	go install github.com/go-delve/delve/cmd/dlv@latest
 endif
 
 lint: ## Run linter

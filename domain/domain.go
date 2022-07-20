@@ -25,5 +25,5 @@ type Hearing struct {
 	URL       string    `json:"url"`
 	Time      time.Time `json:"time"`
 	Published bool      `json:"published"`
-	Raw       string    `json:"raw"`
+	Raw       []string  `json:"raw"`
 }

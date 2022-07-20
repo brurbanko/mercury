@@ -80,16 +80,6 @@ func NewParser() *Parser {
 	}
 }
 
-// LinkAndSelectorForAll returns address of page with all public hearings and DOM selector for page content
-func (p *Parser) LinkAndSelectorForAll() (url, selector string) {
-	return "https://bga32.ru/arxitektura-i-gradostroitelstvo/publichnye-slushaniya/", ".thecontent ol li a"
-}
-
-// SelectorForContent returns DOM selector for content in page with information about public hearing
-func (p *Parser) SelectorForContent() string {
-	return ".thecontent p"
-}
-
 // Content return full data of public hearing
 func (p *Parser) Content(content []string) (*domain.Hearing, error) {
 	return p.prepare(content)

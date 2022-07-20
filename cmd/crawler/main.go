@@ -24,7 +24,6 @@ import (
 	"github.com/brurbanko/mercury/database"
 	"github.com/brurbanko/mercury/server"
 
-	"github.com/brurbanko/mercury/pkg/crawler"
 	"github.com/brurbanko/mercury/service/hearings"
 
 	"github.com/rs/zerolog"
@@ -72,13 +71,9 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 		}
 	}()
 
-	bga := crawler.New(cfg.Crawler.Domain, cfg.Crawler.UserAgent)
-
 	srv := hearings.New(&hearings.Config{
 		Database: db,
-		Crawler:  bga,
 		Logger:   logger,
-		TempDir:  cfg.TempDir,
 	})
 
 	http := server.New(server.Config{

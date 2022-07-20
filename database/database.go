@@ -32,8 +32,8 @@ import (
 )
 
 const (
-	topicsDelimiter = "||"
-	timeFormat      = "2006-01-02 15:04:05"
+	sliceDelimeter = "||"
+	timeFormat     = "2006-01-02 15:04:05"
 )
 
 // Client to database
@@ -183,11 +183,11 @@ func (c *Client) Create(ctx context.Context, publicHearing domain.Hearing) error
 		ctx,
 		query,
 		publicHearing.URL,
-		strings.Join(publicHearing.Topic, topicsDelimiter),
-		strings.Join(publicHearing.Proposals, topicsDelimiter),
+		strings.Join(publicHearing.Topic, sliceDelimeter),
+		strings.Join(publicHearing.Proposals, sliceDelimeter),
 		publicHearing.Place,
 		publicHearing.Time.Format(timeFormat),
-		publicHearing.Raw,
+		strings.Join(publicHearing.Raw, sliceDelimeter),
 	)
 	return err
 }
@@ -238,10 +238,10 @@ func (c *Client) Find(ctx context.Context, link string) (domain.Hearing, error) 
 	hp.URL = tempHearing.Link
 	hp.Time, _ = time.Parse(timeFormat, tempHearing.Date)
 	hp.Place = tempHearing.Place
-	hp.Topic = strings.Split(tempHearing.Topics, topicsDelimiter)
-	hp.Proposals = strings.Split(tempHearing.Proposals, topicsDelimiter)
+	hp.Topic = strings.Split(tempHearing.Topics, sliceDelimeter)
+	hp.Proposals = strings.Split(tempHearing.Proposals, sliceDelimeter)
 	hp.Published = tempHearing.Published
-	hp.Raw = tempHearing.Raw
+	hp.Raw = strings.Split(tempHearing.Raw, sliceDelimeter)
 
 	return hp, nil
 }
@@ -263,10 +263,10 @@ func (c *Client) List(ctx context.Context) ([]domain.Hearing, error) {
 			break
 		}
 		hp.Place = th.Place
-		hp.Topic = strings.Split(th.Topics, topicsDelimiter)
-		hp.Proposals = strings.Split(th.Proposals, topicsDelimiter)
+		hp.Topic = strings.Split(th.Topics, sliceDelimeter)
+		hp.Proposals = strings.Split(th.Proposals, sliceDelimeter)
 		hp.Published = th.Published
-		hp.Raw = th.Raw
+		hp.Raw = strings.Split(th.Raw, sliceDelimeter)
 		res = append(res, hp)
 	}
 

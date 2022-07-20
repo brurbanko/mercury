@@ -16,11 +16,12 @@ package hearings
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/brurbanko/mercury/internal/scrapper"
 
 	"github.com/brurbanko/mercury/database"
 	"github.com/brurbanko/mercury/domain"
-
-	"github.com/brurbanko/mercury/pkg/crawler"
 
 	"github.com/rs/zerolog"
 )
@@ -29,31 +30,37 @@ var fid uint64
 
 // Service to manage public hearings
 type Service struct {
-	logger  *zerolog.Logger
-	crawler *crawler.Crawler
-	parser  *Parser
-	db      *database.Client
+	logger *zerolog.Logger
+	parser *Parser
+	db     *database.Client
+
+	scrapper *scrapper.Scrapper
 }
 
 // Config for hearings service
 type Config struct {
 	Database *database.Client
-	Crawler  *crawler.Crawler
 	Logger   *zerolog.Logger
 }
 
-// New returns an instance of hearings service
+// New returns an instance of hearing service
 func New(cfg *Config) *Service {
 	l := cfg.Logger.With().Str("service", "hearings").Logger()
 	return &Service{
-		logger:  &l,
-		crawler: cfg.Crawler,
-		db:      cfg.Database,
-		parser:  NewParser(),
+		logger: &l,
+		db:     cfg.Database,
+		parser: NewParser(),
+
+		scrapper: scrapper.New(&scrapper.Options{
+			Logger:      &l,
+			UserAgent:   "urbanist-public-hearings (https://t.me/public_bryansk_bot)",
+			MaxBodySize: 1024 * 1024,
+			CacheDir:    "./cache",
+		}),
 	}
 }
 
-// List of hearings (Cached)
+// List of hearings
 func (s *Service) List(ctx context.Context) ([]domain.Hearing, error) {
 	links, err := s.db.List(ctx)
 
@@ -64,34 +71,12 @@ func (s *Service) List(ctx context.Context) ([]domain.Hearing, error) {
 	return links, err
 }
 
-func (s *Service) FindNew(ctx context.Context) ([]domain.Hearing, error) {
-	links, err := s.FetchLinks()
-	if err != nil {
-		return nil, err
-	}
-	var hearings []domain.Hearing
-	for _, link := range links {
-		_, err := s.Find(ctx, link)
-		if err != nil {
-			hearing, ferr := s.Fetch(link)
-			if ferr != nil {
-				s.logger.Err(ferr).Msg("Failed to fetch hearing")
-				continue
-			}
-			serr := s.Save(ctx, hearing)
-			if serr != nil {
-				s.logger.Err(serr).Msg("Failed to save hearing")
-				continue
-			}
-			hearings = append(hearings, *hearing)
-		}
-	}
-	return hearings, nil
-}
-
 // FetchLinks of public hearings
-func (s *Service) FetchLinks() ([]string, error) {
-	links, err := s.crawler.ExtractLinks(s.parser.LinkAndSelectorForAll())
+func (s *Service) FetchLinks(ctx context.Context) ([]string, error) {
+	links, err := s.scrapper.ExtractLinks(ctx,
+		"https://bga32.ru/arxitektura-i-gradostroitelstvo/publichnye-slushaniya/",
+		".thecontent ol li a",
+		true)
 
 	// Reverse slice. Older links will be at begin
 	for i, j := 0, len(links)-1; i < j; i, j = i+1, j-1 {
@@ -101,11 +86,12 @@ func (s *Service) FetchLinks() ([]string, error) {
 }
 
 // Fetch information about public hearing from site
-func (s *Service) Fetch(link string) (*domain.Hearing, error) {
-	content, err := s.crawler.ExtractContent(link, s.parser.SelectorForContent())
+func (s *Service) Fetch(ctx context.Context, link string) (*domain.Hearing, error) {
+	content, err := s.scrapper.ExtractContent(ctx, link, ".thecontent p", false)
 	if err != nil {
 		return &domain.Hearing{
 			URL: link,
+			Raw: content,
 		}, err
 	}
 
@@ -128,4 +114,8 @@ func (s *Service) Find(ctx context.Context, link string) (*domain.Hearing, error
 // Save information about public hearing in database
 func (s *Service) Save(ctx context.Context, hearing *domain.Hearing) error {
 	return s.db.Create(ctx, *hearing)
+}
+
+func (s *Service) FindUnpublished(_ context.Context) ([]domain.Hearing, error) {
+	return nil, fmt.Errorf("not implemented")
 }

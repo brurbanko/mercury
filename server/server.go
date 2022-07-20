@@ -92,7 +92,8 @@ func (s *Server) initRouter(token string) {
 
 	mux.Route("/hearings", func(r chi.Router) {
 		r.Get("/", s.listHearings)
-		r.Get("/new", s.newHearing)
+		r.Get("/new", s.newHearings)
+		r.Get("/links", s.hearingLinks)
 	})
 
 	s.server.Handler = mux
@@ -135,7 +136,7 @@ func (s *Server) listHearings(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("list hearings")
 	h, err := s.hearings.List(r.Context())
 	if err != nil {
-		s.logger.Err(err).Msg("error list hearings")
+		s.logger.Err(err).Msg("failed show hearings list")
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{err.Error()})
 		return
@@ -145,11 +146,11 @@ func (s *Server) listHearings(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, dataResponse{h})
 }
 
-func (s *Server) newHearing(w http.ResponseWriter, r *http.Request) {
-	s.logger.Debug().Msg("new hearing")
-	h, err := s.hearings.FindNew(r.Context())
+func (s *Server) newHearings(w http.ResponseWriter, r *http.Request) {
+	s.logger.Debug().Msg("new hearings")
+	h, err := s.hearings.FindUnpublished(r.Context())
 	if err != nil {
-		s.logger.Err(err).Msg("error new hearing")
+		s.logger.Err(err).Msg("failed find new hearings")
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, errorResponse{err.Error()})
 		return
@@ -157,4 +158,18 @@ func (s *Server) newHearing(w http.ResponseWriter, r *http.Request) {
 
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, dataResponse{h})
+}
+
+func (s *Server) hearingLinks(w http.ResponseWriter, r *http.Request) {
+	s.logger.Debug().Msg("hearing links")
+	links, err := s.hearings.FetchLinks(r.Context())
+	if err != nil {
+		s.logger.Err(err).Msg("failed to fetch hearing links")
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, errorResponse{err.Error()})
+		return
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, dataResponse{links})
 }
