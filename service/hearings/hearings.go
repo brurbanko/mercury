@@ -98,13 +98,12 @@ func (s *Service) ProcessLink(ctx context.Context, link string) (domain.Hearing,
 	}
 	hearing.Raw = content
 
-	hearing, err = s.parser.Content(content)
-	hearing.URL = link
+	hp, err := s.parser.Content(hearing)
 	if err != nil {
 		l.Error().Err(err).Msg("failed to parse hearing content")
-		return hearing, err
+		return hp, err
 	}
-	return hearing, nil
+	return hp, nil
 }
 
 // Find public hearing by URL

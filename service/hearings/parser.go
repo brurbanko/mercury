@@ -81,12 +81,16 @@ func NewParser() *Parser {
 }
 
 // Content return full data of public hearing
-func (p *Parser) Content(content []string) (domain.Hearing, error) {
-	return p.prepare(content)
+func (p *Parser) Content(hearing domain.Hearing) (domain.Hearing, error) {
+	return p.prepare(hearing)
 }
 
-func (p *Parser) prepare(content []string) (domain.Hearing, error) {
-	ph := domain.Hearing{Raw: content}
+func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
+	ph := domain.Hearing{
+		URL: hearing.URL,
+		Raw: hearing.Raw,
+	}
+	content := hearing.Raw
 
 	if len(content) == 0 {
 		return ph, fmt.Errorf("empty content")
