@@ -35,7 +35,6 @@ func TestParser_prepare(t *testing.T) {
 		{
 			name: "content 2021-02-26: one topic, multi proposals",
 			input: domain.Hearing{
-				ID:  "1",
 				URL: "https://bga32.ru/arxitektura-i-gradostroitelstvo/publichnye-slushaniya/informaciya-o-publichnyx-slushaniyax-naznachennyx-na-26-fevralya-2021-goda/",
 				Raw: []string{
 					"26 февраля 2021 года в 11.00 в ГДК Советского района (ул. Калинина, д. 66) состоятся публичные слушания по проекту Решения Брянского городского Совета народных депутатов «О внесении изменений в Правила землепользования и застройки города Брянска, утверждённые Решением Брянского городского Совета народных депутатов от 26.07.2017 №796», назначенные постановлением главы города Брянска №532-пг от 15.01.2021 г.",
@@ -51,7 +50,6 @@ func TestParser_prepare(t *testing.T) {
 				},
 			},
 			want: domain.Hearing{
-				ID:  "1",
 				URL: "https://bga32.ru/arxitektura-i-gradostroitelstvo/publichnye-slushaniya/informaciya-o-publichnyx-slushaniyax-naznachennyx-na-26-fevralya-2021-goda/",
 				Topic: []string{
 					"по проекту Решения Брянского городского Совета народных депутатов «О внесении изменений в Правила землепользования и застройки города Брянска, утверждённые Решением Брянского городского Совета народных депутатов от 26.07.2017 №796», назначенные постановлением главы города Брянска №532-пг от 15.01.2021 г",
@@ -80,7 +78,6 @@ func TestParser_prepare(t *testing.T) {
 		{
 			name: "content 2021-03-17. multi topic, multi proposals",
 			input: domain.Hearing{
-				ID:  "2",
 				URL: "https://bga32.ru/informaciya-o-publichnyx-slushaniyax-naznachennyx-na-17-marta-2021-goda/",
 				Raw: []string{
 					"17 марта 2021 года в 11.00 в ГДК Советского района (ул. Калинина, д. 66) состоятся публичные слушания по следующим вопросам:",
@@ -99,7 +96,6 @@ func TestParser_prepare(t *testing.T) {
 				},
 			},
 			want: domain.Hearing{
-				ID:  "2",
 				URL: "https://bga32.ru/informaciya-o-publichnyx-slushaniyax-naznachennyx-na-17-marta-2021-goda/",
 				Topic: []string{
 					"по проекту планировки территории, ограниченной кольцевым пересечением в районе железнодорожного вокзала Брянск-1 территорией железнодорожного вокзала Брянск-1, руслом реки Десна и дома №19 по улице Речной в Володарском районе города Брянска",
@@ -133,7 +129,6 @@ func TestParser_prepare(t *testing.T) {
 		{
 			name: "content 2021-09-30. without year",
 			input: domain.Hearing{
-				ID:  "3",
 				URL: "https://bga32.ru/arxitektura-i-gradostroitelstvo/publichnye-slushaniya/informaciya-o-publichnyx-slushaniyax-naznachennyx-na-30-sentyabrya-2021-goda/",
 				Raw: []string{
 					"30 сентября в 11.00 в ГДК Советского района (ул. Калинина, д. 66) состоятся публичные слушания по следующим вопросам:",
@@ -150,7 +145,6 @@ func TestParser_prepare(t *testing.T) {
 				},
 			},
 			want: domain.Hearing{
-				ID:  "3",
 				URL: "https://bga32.ru/arxitektura-i-gradostroitelstvo/publichnye-slushaniya/informaciya-o-publichnyx-slushaniyax-naznachennyx-na-30-sentyabrya-2021-goda/",
 				Topic: []string{
 					"по проекту планировки территории, ограниченной улицами Радищева, Мичурина, Профсоюзов, Абашева в Володарском районе города Брянска",

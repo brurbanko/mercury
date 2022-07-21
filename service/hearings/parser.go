@@ -29,6 +29,7 @@ var topicEndParagraph = "(?:Экспозиция" + spaces + "+проект|Уч
 var proposalParagraph = "^При[её]м" + spaces
 var timeAndPlace = `(?P<day>\d+)` + spaces + `+(?P<month>\p{L}+)(?:` + spaces + `+(?P<year>\d+)` + spaces + "+года)?" + spaces + "+в" + spaces + `+(?P<hours>\d+)[\.:](?P<minutes>\d+)` + spaces + `+в` + spaces + `(?P<place>.*)`
 var clearLine = `^[\s\p{Zs}]*[-—]?[\s\p{Zs}]*(?P<line>.*)[\s\p{Zs}]*[\.;]+?[\s\p{Zs}]*$`
+var year = `(?P<year>\d{4})(?:-goda/)?`
 
 var serviceTimeLocation = time.Now().Location()
 var beginnigTime = time.Date(2021, time.January, 1, 0, 0, 0, 0, serviceTimeLocation)
@@ -67,6 +68,7 @@ type Parser struct {
 	reTimePlace         *regexp.Regexp
 	reClearLine         *regexp.Regexp
 	reProposalParagraph *regexp.Regexp
+	reYear              *regexp.Regexp
 }
 
 // NewParser return instance of public hearings parser
@@ -77,6 +79,7 @@ func NewParser() *Parser {
 		reTimePlace:         regexp.MustCompile(timeAndPlace),
 		reClearLine:         regexp.MustCompile(clearLine),
 		reProposalParagraph: regexp.MustCompile(proposalParagraph),
+		reYear:              regexp.MustCompile(year),
 	}
 }
 
@@ -148,7 +151,13 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 
 		year, err := strconv.Atoi(paramsMap["year"])
 		if err != nil {
-			year = time.Now().Year()
+			// If year not defined try extract it from url
+			year, err = p.extractYear(hearing.URL)
+			if err != nil {
+				// If year is still not defined, use current year
+				year = time.Now().Year()
+
+			}
 		}
 
 		day, err := strconv.Atoi(paramsMap["day"])
@@ -221,4 +230,16 @@ func (p *Parser) clearString(str string) string {
 	}
 
 	return paramsMap["line"]
+}
+
+func (p *Parser) extractYear(link string) (int, error) {
+	match := p.reYear.FindStringSubmatch(link)
+	if len(match) == 0 {
+		return 0, fmt.Errorf("failed parse year. cannot extract year from url")
+	}
+	year, err := strconv.Atoi(match[1])
+	if err != nil {
+		return 0, fmt.Errorf("failed parse year. cannot convert year to int")
+	}
+	return year, nil
 }
