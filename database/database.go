@@ -115,6 +115,11 @@ func (c *Client) prepareDBFile(filename string) error {
 	return nil
 }
 
+// clean query from "\n" and "\t"
+func (c *Client) cleanQuery(q string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(q, "\n", " "), "\t", "")
+}
+
 func (c *Client) prepareSchema() error {
 	version, err := c.getSchemaVersion()
 	if err != nil {
@@ -144,7 +149,7 @@ func (c *Client) prepareSchema() error {
 	c.logger.Info().Msg("upgrading database schema...")
 
 	for i := version; i < len(queries); i++ {
-		c.logger.Debug().Msgf("database executing query: %s", queries[i])
+		c.logger.Debug().Msgf("database executing query: %s", c.cleanQuery(queries[i]))
 		_, err = c.db.Exec(queries[i])
 		if err != nil {
 			return fmt.Errorf("could not execute query: %w", err)
@@ -250,6 +255,7 @@ func (c *Client) Find(ctx context.Context, link string) (domain.Hearing, error) 
 	if err != nil {
 		return hp, err
 	}
+
 	hp.URL = tempHearing.Link
 	hp.Time, _ = time.Parse(timeFormat, tempHearing.Date)
 	hp.Place = tempHearing.Place
