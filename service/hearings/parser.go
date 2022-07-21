@@ -15,7 +15,7 @@
 package hearings
 
 import (
-	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"time"
@@ -23,7 +23,7 @@ import (
 	"github.com/brurbanko/mercury/domain"
 )
 
-var spaces = `[\t\n\v\f\r\p{Zs}]`
+var spaces = `[\x{00A0}\s\t\n\v\f\r\p{Zs}]`
 var topicStartParagraph = spaces + "состоятся" + spaces + "+(публичные" + spaces + "+слушания" + spaces + "+)?"
 var topicEndParagraph = "(?:Экспозиция" + spaces + "+проект|Участник)"
 var proposalParagraph = "^При[её]м" + spaces
@@ -31,7 +31,7 @@ var timeAndPlace = `(?P<day>\d+)` + spaces + `+(?P<month>\p{L}+)(?:` + spaces + 
 var clearLine = `^\p{Zs}*?[-—]?\p{Zs}*?(?P<line>.*)\p{Zs}*?[\.;]+?\p{Zs}*?$`
 
 var serviceTimeLocation = time.Now().Location()
-var beginnigTime = time.Date(2021, time.May, 1, 0, 0, 0, 0, serviceTimeLocation)
+var beginnigTime = time.Date(2021, time.January, 1, 0, 0, 0, 0, serviceTimeLocation)
 
 var months = map[string]time.Month{
 	"январь":   time.January,
@@ -62,21 +62,21 @@ var months = map[string]time.Month{
 
 // Parser is preparing data about public hearings
 type Parser struct {
-	reTS *regexp.Regexp
-	reTE *regexp.Regexp
-	reTP *regexp.Regexp
-	reCL *regexp.Regexp
-	rePP *regexp.Regexp
+	reTopicStart        *regexp.Regexp
+	reTopicEnd          *regexp.Regexp
+	reTimePlace         *regexp.Regexp
+	reClearLine         *regexp.Regexp
+	reProposalParagraph *regexp.Regexp
 }
 
 // NewParser return instance of public hearings parser
 func NewParser() *Parser {
 	return &Parser{
-		reTS: regexp.MustCompile(topicStartParagraph),
-		reTE: regexp.MustCompile(topicEndParagraph),
-		reTP: regexp.MustCompile(timeAndPlace),
-		reCL: regexp.MustCompile(clearLine),
-		rePP: regexp.MustCompile(proposalParagraph),
+		reTopicStart:        regexp.MustCompile(topicStartParagraph),
+		reTopicEnd:          regexp.MustCompile(topicEndParagraph),
+		reTimePlace:         regexp.MustCompile(timeAndPlace),
+		reClearLine:         regexp.MustCompile(clearLine),
+		reProposalParagraph: regexp.MustCompile(proposalParagraph),
 	}
 }
 
@@ -89,7 +89,7 @@ func (p *Parser) prepare(content []string) (domain.Hearing, error) {
 	ph := domain.Hearing{Raw: content}
 
 	if len(content) == 0 {
-		return ph, errors.New("empty content")
+		return ph, fmt.Errorf("empty content")
 	}
 
 	/* DEFINE TOPIC */
@@ -98,9 +98,9 @@ func (p *Parser) prepare(content []string) (domain.Hearing, error) {
 	// All data in one paragraph
 	if start+1 == next {
 		// Split content to parts: 1-st -- time and place, 2-nd -- topic
-		parts := p.reTS.Split(content[start], -1)
+		parts := p.reTopicStart.Split(content[start], -1)
 		if len(parts) != 2 {
-			return ph, errors.New("failed parse content. cannot split to time/place and topic")
+			return ph, fmt.Errorf("failed parse content. cannot split to time/place and topic")
 		}
 		top := p.clearString(parts[1])
 		if top != "" {
@@ -112,9 +112,9 @@ func (p *Parser) prepare(content []string) (domain.Hearing, error) {
 		for i := start; i < next; i++ {
 			// First paragraph with date and place
 			if i == start {
-				parts := p.reTS.Split(content[i], -1)
+				parts := p.reTopicStart.Split(content[i], -1)
 				if len(parts) == 0 {
-					return ph, errors.New("failed parse content. cannot split to time and place")
+					return ph, fmt.Errorf("failed parse content. cannot split to time and place")
 				}
 				ph.Place = parts[0]
 			} else {
@@ -128,15 +128,15 @@ func (p *Parser) prepare(content []string) (domain.Hearing, error) {
 	}
 
 	if len(ph.Topic) == 0 {
-		return ph, errors.New("failed parse content. cannot get topics")
+		return ph, fmt.Errorf("failed parse content. cannot get topics")
 	}
 
 	/* DEFINE PLACE AND TIME */
 	if ph.Place != "" {
-		match := p.reTP.FindStringSubmatch(ph.Place)
+		match := p.reTimePlace.FindStringSubmatch(ph.Place)
 
 		paramsMap := make(map[string]string)
-		for i, name := range p.reTP.SubexpNames() {
+		for i, name := range p.reTimePlace.SubexpNames() {
 			if i > 0 && i <= len(match) {
 				paramsMap[name] = match[i]
 			}
@@ -163,14 +163,13 @@ func (p *Parser) prepare(content []string) (domain.Hearing, error) {
 		}
 
 		ph.Time = time.Date(year, months[paramsMap["month"]], day, hours, minutes, 0, 0, serviceTimeLocation)
+		if ph.Time.Before(beginnigTime) {
+			return ph, fmt.Errorf("failed parse date. the extracted date (%s) is earlier than the beginning time (%s): %s", ph.Time, beginnigTime, ph.Place)
+		}
 		// Replace place
 		ph.Place = paramsMap["place"]
 	} else {
-		return ph, errors.New("failed parse date and place. empty string")
-	}
-
-	if ph.Time.Before(beginnigTime) {
-		return ph, errors.New("failed parse date. raw strings with date: '" + ph.Place + "'")
+		return ph, fmt.Errorf("failed parse date and place. empty string")
 	}
 
 	/* DEFINE PROPOSALS */
@@ -184,10 +183,10 @@ func (p *Parser) prepare(content []string) (domain.Hearing, error) {
 
 func (p *Parser) defineTopicsParagraphs(content []string) (start, next int) {
 	for i, paragraph := range content {
-		if p.reTS.MatchString(paragraph) {
+		if p.reTopicStart.MatchString(paragraph) {
 			start = i
 		}
-		if p.reTE.MatchString(paragraph) {
+		if p.reTopicEnd.MatchString(paragraph) {
 			next = i
 			break
 		}
@@ -200,7 +199,7 @@ func (p *Parser) defineTopicsParagraphs(content []string) (start, next int) {
 
 func (p *Parser) defineProposalParagraphs(content []string) (res []int) {
 	for i, paragraph := range content {
-		if p.rePP.MatchString(paragraph) {
+		if p.reProposalParagraph.MatchString(paragraph) {
 			res = append(res, i)
 		}
 	}
@@ -208,10 +207,10 @@ func (p *Parser) defineProposalParagraphs(content []string) (res []int) {
 }
 
 func (p *Parser) clearString(str string) string {
-	match := p.reCL.FindStringSubmatch(str)
+	match := p.reClearLine.FindStringSubmatch(str)
 
 	paramsMap := make(map[string]string)
-	for i, name := range p.reCL.SubexpNames() {
+	for i, name := range p.reClearLine.SubexpNames() {
 		if i > 0 && i <= len(match) {
 			paramsMap[name] = match[i]
 		}
