@@ -28,7 +28,7 @@ var topicStartParagraph = spaces + "состоятся" + spaces + "+(публи
 var topicEndParagraph = "(?:Экспозиция" + spaces + "+проект|Участник)"
 var proposalParagraph = "^При[её]м" + spaces
 var timeAndPlace = `(?P<day>\d+)` + spaces + `+(?P<month>\p{L}+)(?:` + spaces + `+(?P<year>\d+)` + spaces + "+года)?" + spaces + "+в" + spaces + `+(?P<hours>\d+)[\.:](?P<minutes>\d+)` + spaces + `+в` + spaces + `(?P<place>.*)`
-var clearLine = `^\p{Zs}*?[-—]?\p{Zs}*?(?P<line>.*)\p{Zs}*?[\.;]+?\p{Zs}*?$`
+var clearLine = `^[\s\p{Zs}]*[-—]?[\s\p{Zs}]*(?P<line>.*)[\s\p{Zs}]*[\.;]+?[\s\p{Zs}]*$`
 
 var serviceTimeLocation = time.Now().Location()
 var beginnigTime = time.Date(2021, time.January, 1, 0, 0, 0, 0, serviceTimeLocation)

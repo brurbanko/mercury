@@ -111,7 +111,7 @@ func (s *Service) Find(ctx context.Context, link string) (domain.Hearing, error)
 	return s.db.Find(ctx, link)
 }
 
-// NewHearing returns list of new hearings from site
+// NewHearings returns list of new hearings from site
 func (s *Service) NewHearings(ctx context.Context) ([]domain.Hearing, error) {
 	l := s.logger.With().Str("method", "NewHearings").Logger()
 	l.Debug().Msg("fetching new hearings")
