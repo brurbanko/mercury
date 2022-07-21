@@ -160,7 +160,10 @@ func (s Scrapper) ExtractLinks(ctx context.Context, link, selector string, force
 
 // fetch HTML from link
 func (s *Scrapper) fetch(ctx context.Context, link string, force bool) ([]byte, error) {
-	l := s.logger.With().Str("link", link).Logger()
+	l := s.logger.With().
+		Str("method", "fetch").
+		Str("link", link).
+		Logger()
 
 	if !force {
 		body, err := s.loadFromCache(link)
@@ -224,7 +227,10 @@ func (s *Scrapper) createCacheDirectory() error {
 
 // save html page to cache
 func (s *Scrapper) saveToCache(link string, body []byte) error {
-	l := s.logger.With().Str("link", link).Logger()
+	l := s.logger.With().
+		Str("method", "saveToCache").
+		Str("link", link).
+		Logger()
 	l.Debug().Msg("saving to cache")
 	if s.cacheDir == "" {
 		l.Debug().Msg("cache directory is not set")
@@ -251,7 +257,10 @@ func (s *Scrapper) saveToCache(link string, body []byte) error {
 
 // load html page from cache
 func (s *Scrapper) loadFromCache(link string) ([]byte, error) {
-	l := s.logger.With().Str("link", link).Logger()
+	l := s.logger.With().
+		Str("method", "loadFromCache").
+		Str("link", link).
+		Logger()
 	l.Debug().Msg("loading from cache")
 	if s.cacheDir == "" {
 		l.Debug().Msg("cache directory is not set")
