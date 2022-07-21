@@ -16,7 +16,6 @@ package hearings
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/brurbanko/mercury/internal/scrapper"
 
@@ -85,10 +84,10 @@ func (s *Service) FetchLinks(ctx context.Context) ([]string, error) {
 	return links, err
 }
 
-// Fetch information about public hearing from site
-func (s *Service) Fetch(ctx context.Context, link string) (domain.Hearing, error) {
+// ProcessLink and get information about public hearing
+func (s *Service) ProcessLink(ctx context.Context, link string) (domain.Hearing, error) {
 	l := s.logger.With().
-		Str("method", "Fetch").
+		Str("method", "ProcessLink").
 		Str("link", link).
 		Logger()
 	hearing := domain.Hearing{URL: link}
@@ -98,12 +97,6 @@ func (s *Service) Fetch(ctx context.Context, link string) (domain.Hearing, error
 		return hearing, err
 	}
 	hearing.Raw = content
-
-	err = s.db.Create(ctx, hearing)
-	if err != nil {
-		l.Error().Err(err).Msg("failed to save hearing")
-		return hearing, err
-	}
 
 	hearing, err = s.parser.Content(content)
 	hearing.URL = link
@@ -119,6 +112,53 @@ func (s *Service) Find(ctx context.Context, link string) (domain.Hearing, error)
 	return s.db.Find(ctx, link)
 }
 
-func (s *Service) FindUnpublished(_ context.Context) ([]domain.Hearing, error) {
-	return nil, fmt.Errorf("not implemented")
+// NewHearing returns list of new hearings from site
+func (s *Service) NewHearings(ctx context.Context) ([]domain.Hearing, error) {
+	l := s.logger.With().Str("method", "NewHearings").Logger()
+	l.Debug().Msg("fetching new hearings")
+	links, err := s.FetchLinks(ctx)
+	if err != nil {
+		l.Error().Err(err).Msg("failed to get list of links")
+		return nil, err
+	}
+
+	l.Debug().Msg("retrieving processed hearings")
+	list, err := s.db.List(ctx)
+	if err != nil {
+		l.Error().Err(err).Msg("failed to get list of hearings")
+		return nil, err
+	}
+
+	l.Debug().Msg("filtering new hearings")
+	processedLinks := make(map[string]struct{})
+	for _, hearing := range list {
+		processedLinks[hearing.URL] = struct{}{}
+	}
+
+	newLinks := make([]string, 0)
+	for _, link := range links {
+		if _, ok := processedLinks[link]; !ok {
+			newLinks = append(newLinks, link)
+		}
+	}
+
+	l.Debug().Msgf("found %d new hearings", len(newLinks))
+	hearings := make([]domain.Hearing, 0)
+	for _, link := range newLinks {
+		hearing, err := s.ProcessLink(ctx, link)
+		if err != nil {
+			l.Error().Err(err).Msg("failed to process hearing")
+			continue
+		}
+
+		err = s.db.Create(ctx, hearing)
+		if err != nil {
+			l.Error().Err(err).Str("link", link).Msg("failed to save hearing")
+			continue
+		}
+
+		hearings = append(hearings, hearing)
+	}
+
+	return hearings, nil
 }

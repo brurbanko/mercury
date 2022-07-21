@@ -148,7 +148,7 @@ func (s *Server) listHearings(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) newHearings(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("new hearings")
-	h, err := s.hearings.FindUnpublished(r.Context())
+	h, err := s.hearings.NewHearings(r.Context())
 	if err != nil {
 		s.logger.Err(err).Msg("failed find new hearings")
 		render.Status(r, http.StatusInternalServerError)
