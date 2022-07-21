@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"golang.org/x/net/html/charset"
@@ -40,6 +41,8 @@ var ErrCacheNotSet = fmt.Errorf("cache directory is not set")
 type Scrapper struct {
 	client *http.Client
 	logger *zerolog.Logger
+
+	reSpaces *regexp.Regexp
 
 	cacheDir string
 
@@ -77,6 +80,8 @@ func New(opt *Options) *Scrapper {
 		logger: &l,
 		client: &http.Client{},
 
+		reSpaces: regexp.MustCompile(`[\x{00A0}\s\t\n\v\f\r\p{Zs}]+`),
+
 		cacheDir: opt.CacheDir,
 
 		ua:          opt.UserAgent,
@@ -107,8 +112,8 @@ func (s *Scrapper) ExtractContent(ctx context.Context, link, selector string, fo
 
 	l.Debug().Msg("extracting content")
 	var content []string
-	doc.Find(selector).Each(func(i int, s *goquery.Selection) {
-		t := strings.TrimSpace(s.Text())
+	doc.Find(selector).Each(func(i int, sel *goquery.Selection) {
+		t := strings.TrimSpace(s.reSpaces.ReplaceAllString(sel.Text(), " "))
 		if len(t) > 0 {
 			content = append(content, t)
 		}
