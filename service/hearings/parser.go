@@ -25,9 +25,9 @@ import (
 
 var spaces = `[\x{00A0}\s\t\n\v\f\r\p{Zs}]`
 var topicStartParagraph = spaces + "состоятся" + spaces + "+(публичные" + spaces + "+слушания" + spaces + "+)?"
-var topicEndParagraph = "(?:Экспозиция" + spaces + "+проект|Участник)"
+var topicEndParagraph = "^(?:Экспозиция" + spaces + "+проект|Участник|В" + spaces + "+проект)"
 var proposalParagraph = "^При[её]м" + spaces
-var timeAndPlace = `(?P<day>\d+)` + spaces + `+(?P<month>\p{L}+)(?:` + spaces + `+(?P<year>\d+)` + spaces + "+года)?" + spaces + "+в" + spaces + `+(?P<hours>\d+)[\.:](?P<minutes>\d+)` + spaces + `+в` + spaces + `(?P<place>.*)`
+var timeAndPlace = `(?P<day>\d+)` + spaces + `+(?P<month>\p{L}+)(?:` + spaces + `+(?P<year>\d+)` + spaces + "+года)?" + spaces + `+в` + spaces + `+(?P<hours>\d+)[\.:](?P<minutes>\d+)` + spaces + "+(?:в|по" + spaces + "+адресу:?)" + spaces + `(?P<place>.*)`
 var clearLine = `^[\s\p{Zs}]*[-—]?[\s\p{Zs}]*(?P<line>.*)[\s\p{Zs}]*[\.;]+?[\s\p{Zs}]*$`
 var year = `(?P<year>\d{4})(?:-goda/)?`
 
