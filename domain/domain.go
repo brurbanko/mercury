@@ -14,7 +14,10 @@
 
 package domain
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 // Hearing of BGA32
 type Hearing struct {
@@ -26,4 +29,80 @@ type Hearing struct {
 	Time      time.Time `json:"time"`
 	Published bool      `json:"published"`
 	Raw       []string  `json:"raw"`
+}
+
+// String returns text representation of hearing
+func (h Hearing) String() string {
+	if h.Place == "" {
+		return ""
+	}
+	var sb strings.Builder
+	sb.WriteString(h.Time.Format("02.01.2006"))
+	sb.WriteString(" в ")
+	sb.WriteString(h.Time.Format("15:04"))
+	sb.WriteString(" в ")
+	sb.WriteString(h.Place)
+
+	if len(h.Topic) == 1 {
+		sb.WriteString(" состоятся публичные слушания ")
+		sb.WriteString(h.Topic[0])
+	} else {
+		sb.WriteString(" состоятся публичные слушания:")
+		for _, t := range h.Topic {
+			if len(t) > 0 {
+				sb.WriteString("\n - ")
+				sb.WriteString(t)
+			}
+		}
+	}
+	sb.WriteString("\n")
+
+	for _, p := range h.Proposals {
+		sb.WriteString(p)
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("Ссылка на публикацию: ")
+	sb.WriteString(h.URL)
+	sb.WriteString("\n")
+
+	return sb.String()
+}
+
+// Markdown returns formatted representation of hearing
+func (h Hearing) Markdown() string {
+	if h.Place == "" {
+		return ""
+	}
+	var sb strings.Builder
+	sb.WriteString("*")
+	sb.WriteString(h.Time.Format("02.01.2006"))
+	sb.WriteString(" в ")
+	sb.WriteString(h.Time.Format("15:04"))
+	sb.WriteString(" в ")
+	sb.WriteString(h.Place)
+	sb.WriteString("*")
+
+	if len(h.Topic) == 1 {
+		sb.WriteString(" состоятся публичные слушания ")
+		sb.WriteString(h.Topic[0])
+	} else {
+		sb.WriteString(" состоятся публичные слушания:")
+		for _, t := range h.Topic {
+			sb.WriteString("\n\n - ")
+			sb.WriteString(t)
+		}
+	}
+	sb.WriteString("\n\n")
+
+	for _, p := range h.Proposals {
+		sb.WriteString(p)
+		sb.WriteString("\n\n")
+	}
+
+	sb.WriteString("[Ссылка на публикацию](")
+	sb.WriteString(h.URL)
+	sb.WriteString(")\n")
+
+	return sb.String()
 }
