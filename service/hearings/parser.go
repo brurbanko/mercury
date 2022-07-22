@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/brurbanko/mercury/domain"
@@ -25,6 +26,7 @@ import (
 
 var spaces = `[\x{00A0}\s\t\n\v\f\r\p{Zs}]`
 var topicStartParagraph = spaces + "состоятся" + spaces + "+(публичные" + spaces + "+слушания" + spaces + "+)?"
+var topicFromMisprintParagraph = "по" + spaces + "+(?:проект|объект).*$"
 var topicEndParagraph = "^(?:Экспозиция" + spaces + "+проект|Участник|В" + spaces + "+проект)"
 var proposalParagraph = "^При[её]м" + spaces
 var timeAndPlace = `(?P<day>\d+)` + spaces + `+(?P<month>\p{L}+)(?:` + spaces + `+(?P<year>\d+)` + spaces + "+года)?" + spaces + `+в` + spaces + `+(?P<hours>\d+)[\.:](?P<minutes>\d+)` + spaces + "+(?:в|по" + spaces + "+адресу:?)" + spaces + `(?P<place>.*)`
@@ -69,6 +71,7 @@ type Parser struct {
 	reClearLine         *regexp.Regexp
 	reProposalParagraph *regexp.Regexp
 	reYear              *regexp.Regexp
+	reMissprintTopic    *regexp.Regexp
 }
 
 // NewParser return instance of public hearings parser
@@ -80,6 +83,7 @@ func NewParser() *Parser {
 		reClearLine:         regexp.MustCompile(clearLine),
 		reProposalParagraph: regexp.MustCompile(proposalParagraph),
 		reYear:              regexp.MustCompile(year),
+		reMissprintTopic:    regexp.MustCompile(topicFromMisprintParagraph),
 	}
 }
 
@@ -107,7 +111,14 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 		// Split content to parts: 1-st -- time and place, 2-nd -- topic
 		parts := p.reTopicStart.Split(content[start], -1)
 		if len(parts) != 2 {
-			return ph, fmt.Errorf("failed parse content. cannot split to time/place and topic")
+			topics := p.reMissprintTopic.FindAllString(content[start], -1)
+			if len(topics) == 0 {
+				return ph, fmt.Errorf("failed parse content. cannot split to time/place and topic")
+			}
+			// Add topic to it position
+			parts = append(parts, topics[0])
+			// extract topic from place
+			parts[0] = strings.TrimSpace(strings.TrimSuffix(content[start], topics[0]))
 		}
 		top := p.clearString(parts[1])
 		if top != "" {
