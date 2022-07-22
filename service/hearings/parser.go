@@ -115,7 +115,7 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 		}
 		ph.Place = parts[0]
 	} else {
-		// Some topics in different paragraphs
+		// Multiple topics in different paragraphs
 		for i := start; i < next; i++ {
 			// First paragraph with date and place
 			if i == start {
