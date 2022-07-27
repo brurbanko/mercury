@@ -27,7 +27,7 @@ import (
 var spaces = `[\x{00A0}\s\t\n\v\f\r\p{Zs}]`
 var topicStartParagraph = spaces + "состоятся" + spaces + "+(публичные" + spaces + "+слушания" + spaces + "+)?"
 var topicFromMisprintParagraph = "по" + spaces + "+(?:проект|объект).*$"
-var topicEndParagraph = "^(?:Экспозиция" + spaces + "+проект|Участник|В" + spaces + "+проект)"
+var topicEndParagraph = "^(?:Экспозици." + spaces + "+проект|Участник|В" + spaces + "+проект|Публичные" + spaces + "+слушания)"
 var proposalParagraph = "^При[её]м" + spaces
 var timeAndPlace = `(?P<day>\d+)` + spaces + `+(?P<month>\p{L}+)(?:` + spaces + `+(?P<year>\d+)` + spaces + "+года)?" + spaces + `+в` + spaces + `+(?P<hours>\d+)[\.:](?P<minutes>\d+)` + spaces + "+(?:в|по" + spaces + "+адресу:?)" + spaces + `(?P<place>.*)`
 var clearLine = `^[\s\p{Zs}]*[-—]?[\s\p{Zs}]*(?P<line>.*)[\s\p{Zs}]*[\.;]+?[\s\p{Zs}]*$`
@@ -232,6 +232,9 @@ func (p *Parser) defineProposalParagraphs(content []string) (res []int) {
 
 func (p *Parser) clearString(str string) string {
 	match := p.reClearLine.FindStringSubmatch(str)
+	if len(match) == 0 {
+		return str
+	}
 
 	paramsMap := make(map[string]string)
 	for i, name := range p.reClearLine.SubexpNames() {
