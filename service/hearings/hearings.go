@@ -90,6 +90,7 @@ func (s *Service) ProcessLink(ctx context.Context, link string) (domain.Hearing,
 		Str("method", "ProcessLink").
 		Str("link", link).
 		Logger()
+	l.Info().Msg("processing hearing")
 	hearing := domain.Hearing{URL: link}
 	content, err := s.scrapper.ExtractContent(ctx, link, ".thecontent p", false)
 	if err != nil {
@@ -114,7 +115,7 @@ func (s *Service) Find(ctx context.Context, link string) (domain.Hearing, error)
 // NewHearings returns list of new hearings from site
 func (s *Service) NewHearings(ctx context.Context) ([]domain.Hearing, error) {
 	l := s.logger.With().Str("method", "NewHearings").Logger()
-	l.Debug().Msg("fetching new hearings")
+	l.Info().Msg("fetching new hearings")
 	links, err := s.FetchLinks(ctx)
 	if err != nil {
 		l.Error().Err(err).Msg("failed to get list of links")
@@ -141,7 +142,7 @@ func (s *Service) NewHearings(ctx context.Context) ([]domain.Hearing, error) {
 		}
 	}
 
-	l.Debug().Msgf("found %d new hearings", len(newLinks))
+	l.Info().Msgf("found %d new hearings", len(newLinks))
 	hearings := make([]domain.Hearing, 0)
 	for _, link := range newLinks {
 		hearing, err := s.ProcessLink(ctx, link)
