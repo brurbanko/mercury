@@ -21,7 +21,9 @@ import (
 	"strings"
 
 	"github.com/brurbanko/mercury/service/hearings"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 
 	"github.com/rs/zerolog"
@@ -85,6 +87,8 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc) {
 
 func (s *Server) initRouter(token string) {
 	mux := chi.NewRouter()
+	mux.Use(middleware.Logger)
+	mux.Use(middleware.Recoverer)
 
 	if token != "" {
 		mux.Use(s.authTokenMiddleware(token))
