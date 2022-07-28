@@ -167,7 +167,6 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 			if err != nil {
 				// If year is still not defined, use current year
 				year = time.Now().Year()
-
 			}
 		}
 
@@ -176,9 +175,11 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 			day = 1
 		}
 
+		timeError := false
 		hours, err := strconv.Atoi(paramsMap["hours"])
 		if err != nil {
 			hours = 0
+			timeError = true
 		}
 
 		minutes, err := strconv.Atoi(paramsMap["minutes"])
@@ -190,10 +191,17 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 		if ph.Time.Before(beginnigTime) {
 			return ph, fmt.Errorf("failed parse date. the extracted date (%s) is earlier than the beginning time (%s): %s", ph.Time, beginnigTime, ph.Place)
 		}
+		if timeError {
+			return ph, fmt.Errorf("failed parse date. cannot get time from place: %s", ph.Place)
+		}
 		// Replace place
 		ph.Place = paramsMap["place"]
 	} else {
 		return ph, fmt.Errorf("failed parse date and place. empty string")
+	}
+
+	if ph.Place == "" {
+		return ph, fmt.Errorf("failed parse date and place. result is empty place")
 	}
 
 	/* DEFINE PROPOSALS */
