@@ -63,7 +63,7 @@ func New(cfg Config) *Server {
 }
 
 // Start the web service
-func (s *Server) Start(ctx context.Context, cancel context.CancelFunc) {
+func (s Server) Start(ctx context.Context, cancel context.CancelFunc) {
 	s.logger.Info().Msg("starting http server")
 	go func() {
 		err := s.server.ListenAndServe()
@@ -85,7 +85,7 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc) {
 	}
 }
 
-func (s *Server) initRouter(token string) {
+func (s Server) initRouter(token string) {
 	mux := chi.NewRouter()
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
@@ -103,7 +103,7 @@ func (s *Server) initRouter(token string) {
 	s.server.Handler = mux
 }
 
-func (s *Server) authTokenMiddleware(token string) func(http.Handler) http.Handler {
+func (s Server) authTokenMiddleware(token string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := r.Header.Get("Authorization")
@@ -136,7 +136,7 @@ type dataResponse struct {
 	Data interface{} `json:"data"`
 }
 
-func (s *Server) listHearings(w http.ResponseWriter, r *http.Request) {
+func (s Server) listHearings(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("list hearings")
 	h, err := s.hearings.List(r.Context())
 	if err != nil {
@@ -150,7 +150,7 @@ func (s *Server) listHearings(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, dataResponse{h})
 }
 
-func (s *Server) newHearings(w http.ResponseWriter, r *http.Request) {
+func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("new hearings")
 	h, err := s.hearings.NewHearings(r.Context())
 	if err != nil {
@@ -164,7 +164,7 @@ func (s *Server) newHearings(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, dataResponse{h})
 }
 
-func (s *Server) hearingLinks(w http.ResponseWriter, r *http.Request) {
+func (s Server) hearingLinks(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("hearing links")
 	links, err := s.hearings.FetchLinks(r.Context())
 	if err != nil {
