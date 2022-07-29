@@ -285,9 +285,9 @@ func (c Client) List(ctx context.Context) ([]domain.Hearing, error) {
 func (c Client) Unpublished(ctx context.Context, mark bool) ([]domain.Hearing, error) {
 	tempHearings := make([]hearing, 0)
 	res := make([]domain.Hearing, 0)
-	query := "SELECT id, link, topics, proposals, place, date AS date, published, raw FROM hearings WHERE published IS FALSE ORDER BY date"
+	query := "SELECT id, link, topics, proposals, place, date AS date, published, raw FROM hearings WHERE published IS NOT TRUE ORDER BY date"
 	if mark {
-		query = "UPDATE hearings SET published = TRUE WHERE published IS FALSE RETURNING id, link, topics, proposals, place, date AS date, published, raw"
+		query = "UPDATE hearings SET published = TRUE WHERE published IS NOT TRUE RETURNING id, link, topics, proposals, place, date AS date, published, raw"
 	}
 	err := c.db.SelectContext(ctx, &tempHearings, query)
 	if err != nil {
