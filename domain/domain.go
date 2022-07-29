@@ -19,6 +19,13 @@ import (
 	"time"
 )
 
+// IHearing is interface for hearing
+// Have two methods: String and Markdown
+type IHearing interface {
+	String() string
+	Markdown() string
+}
+
 // Hearing of BGA32
 type Hearing struct {
 	ID        string    `json:"id"`
