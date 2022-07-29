@@ -17,7 +17,7 @@ package scrapper
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec // we need to use md5 for file name
 	"fmt"
 	"io"
 	"net/http"
