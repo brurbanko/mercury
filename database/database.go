@@ -139,6 +139,7 @@ func (c Client) prepareSchema() error {
 			published BOOLEAN DEFAULT false,
 			raw TEXT DEFAULT ''
 		)`,
+		`ALTER TABLE hearings ADD COLUMN created_at TEXT DEFAULT '1970-01-01 00:00:00'`,
 	}
 
 	if version == len(queries) {
@@ -183,8 +184,7 @@ func (c Client) setSchemaVersion(version int) error {
 
 // Create new hearing in database
 func (c Client) Create(ctx context.Context, publicHearing domain.Hearing) error {
-	// TODO add creation date
-	query := "INSERT INTO hearings(link,topics,proposals,place,date,raw) VALUES($1, $2, $3, $4, $5, $6)"
+	query := "INSERT INTO hearings(link,topics,proposals,place,date,raw,created_at) VALUES($1, $2, $3, $4, $5, $6, $7)"
 	_, err := c.db.ExecContext(
 		ctx,
 		query,
@@ -194,6 +194,7 @@ func (c Client) Create(ctx context.Context, publicHearing domain.Hearing) error 
 		publicHearing.Place,
 		publicHearing.Time.Format(timeFormat),
 		strings.Join(publicHearing.Raw, sliceDelimeter),
+		time.Now(),
 	)
 	return err
 }
