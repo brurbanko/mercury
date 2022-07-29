@@ -17,6 +17,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -98,7 +99,7 @@ func (s Server) initRouter(token string) {
 
 	mux.Route("/hearings", func(r chi.Router) {
 		r.Get("/", s.listHearings)
-		r.Get("/new", s.newHearings)
+		r.Post("/new", s.newHearings)
 		r.Get("/links", s.hearingLinks)
 	})
 
@@ -138,6 +139,10 @@ type dataResponse struct {
 	Data interface{} `json:"data"`
 }
 
+type statusResponse struct {
+	Status string `json:"status"`
+}
+
 func (s Server) listHearings(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("list hearings")
 	h, err := s.hearings.List(r.Context())
@@ -163,7 +168,9 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 	}
 
 	render.Status(r, http.StatusOK)
-	render.JSON(w, r, dataResponse{h})
+	render.JSON(w, r, statusResponse{
+		Status: fmt.Sprintf("found %d new hearings", len(h)),
+	})
 }
 
 func (s Server) hearingLinks(w http.ResponseWriter, r *http.Request) {
