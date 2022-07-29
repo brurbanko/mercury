@@ -19,6 +19,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/brurbanko/mercury/service/hearings"
 
@@ -52,7 +53,8 @@ func New(cfg Config) *Server {
 	s := &Server{
 		logger: &l,
 		server: &http.Server{
-			Addr: cfg.Host + ":" + cfg.Port,
+			ReadHeaderTimeout: 10 * time.Second,
+			Addr:              cfg.Host + ":" + cfg.Port,
 		},
 		hearings: cfg.Hearings,
 	}
