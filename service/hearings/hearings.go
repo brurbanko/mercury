@@ -25,8 +25,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var fid uint64
-
 // Service to manage public hearings
 type Service struct {
 	logger *zerolog.Logger
