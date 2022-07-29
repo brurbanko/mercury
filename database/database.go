@@ -91,12 +91,12 @@ func New(dsn string, logger *zerolog.Logger) (*Client, error) {
 }
 
 // Close connection to database
-func (c *Client) Close() error {
+func (c Client) Close() error {
 	c.logger.Info().Msg("closing database connection")
 	return c.db.Close()
 }
 
-func (c *Client) prepareDBFile(filename string) error {
+func (c Client) prepareDBFile(filename string) error {
 	// Проверка существования файла БД
 	fi, err := os.Stat(filename)
 	if err != nil || fi.Size() == 0 {
@@ -116,11 +116,11 @@ func (c *Client) prepareDBFile(filename string) error {
 }
 
 // clean query from "\n" and "\t"
-func (c *Client) cleanQuery(q string) string {
+func (c Client) cleanQuery(q string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(q, "\n", " "), "\t", "")
 }
 
-func (c *Client) prepareSchema() error {
+func (c Client) prepareSchema() error {
 	version, err := c.getSchemaVersion()
 	if err != nil {
 		return fmt.Errorf("could not get schema version: %w", err)
@@ -164,7 +164,7 @@ func (c *Client) prepareSchema() error {
 	return nil
 }
 
-func (c *Client) getSchemaVersion() (int, error) {
+func (c Client) getSchemaVersion() (int, error) {
 	row := c.db.QueryRow("PRAGMA user_version")
 	if row == nil {
 		return 0, fmt.Errorf("PRAGMA user_version not found")
@@ -176,13 +176,14 @@ func (c *Client) getSchemaVersion() (int, error) {
 	return version, nil
 }
 
-func (c *Client) setSchemaVersion(version int) error {
+func (c Client) setSchemaVersion(version int) error {
 	_, err := c.db.Exec(fmt.Sprintf("PRAGMA user_version = %d", version))
 	return err
 }
 
 // Create new hearing in database
-func (c *Client) Create(ctx context.Context, publicHearing domain.Hearing) error {
+func (c Client) Create(ctx context.Context, publicHearing domain.Hearing) error {
+	// TODO add creation date
 	query := "INSERT INTO hearings(link,topics,proposals,place,date,raw) VALUES($1, $2, $3, $4, $5, $6)"
 	_, err := c.db.ExecContext(
 		ctx,
@@ -198,7 +199,7 @@ func (c *Client) Create(ctx context.Context, publicHearing domain.Hearing) error
 }
 
 // Update hearing in database
-func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing) error {
+func (c Client) Update(ctx context.Context, publicHearing domain.Hearing) error {
 	if publicHearing.URL == "" {
 		return fmt.Errorf("cannot update hearing: empty link")
 	}
@@ -247,7 +248,7 @@ func (c *Client) Update(ctx context.Context, publicHearing domain.Hearing) error
 }
 
 // Find one hearing in database
-func (c *Client) Find(ctx context.Context, link string) (domain.Hearing, error) {
+func (c Client) Find(ctx context.Context, link string) (domain.Hearing, error) {
 	tempHearing := &hearing{}
 	hp := domain.Hearing{}
 	query := "SELECT id, link, topics, proposals, place, date, published, raw FROM hearings WHERE link = $1"
@@ -268,7 +269,7 @@ func (c *Client) Find(ctx context.Context, link string) (domain.Hearing, error) 
 }
 
 // List all hearings in database
-func (c *Client) List(ctx context.Context) ([]domain.Hearing, error) {
+func (c Client) List(ctx context.Context) ([]domain.Hearing, error) {
 	tempHearings := make([]hearing, 0)
 	res := make([]domain.Hearing, 0)
 	query := "SELECT id, link, topics, proposals, place, date as date, published, raw FROM hearings ORDER BY date"
