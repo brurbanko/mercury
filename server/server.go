@@ -100,6 +100,7 @@ func (s Server) initRouter(token string) {
 	mux.Route("/hearings", func(r chi.Router) {
 		r.Get("/", s.listHearings)
 		r.Post("/new", s.newHearings)
+		r.Get("/new", s.unpublishedHearings)
 		r.Get("/links", s.hearingLinks)
 	})
 
@@ -143,6 +144,10 @@ type statusResponse struct {
 	Status string `json:"status"`
 }
 
+type listResponse struct {
+	List []string `json:"list"`
+}
+
 func (s Server) listHearings(w http.ResponseWriter, r *http.Request) {
 	s.logger.Debug().Msg("list hearings")
 	h, err := s.hearings.List(r.Context())
@@ -170,6 +175,35 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, statusResponse{
 		Status: fmt.Sprintf("found %d new hearings", len(h)),
+	})
+}
+
+func (s Server) unpublishedHearings(w http.ResponseWriter, r *http.Request) {
+	s.logger.Debug().Msg("unpublished hearings")
+	mark := r.URL.Query().Get("dry-run") != "true"
+	h, err := s.hearings.Unpublished(r.Context(), mark)
+	if err != nil {
+		s.logger.Err(err).Msg("failed find unpublished hearings")
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, errorResponse{err.Error()})
+		return
+	}
+
+	list := make([]string, len(h))
+	format := r.URL.Query().Get("format")
+	if format == "markdown" {
+		for i, v := range h {
+			list[i] = v.Markdown()
+		}
+	} else {
+		for i, v := range h {
+			list[i] = v.String()
+		}
+	}
+
+	render.Status(r, http.StatusOK)
+	render.JSON(w, r, listResponse{
+		List: list,
 	})
 }
 

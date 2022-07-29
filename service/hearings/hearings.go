@@ -160,3 +160,20 @@ func (s Service) NewHearings(ctx context.Context) ([]domain.Hearing, error) {
 
 	return hearings, nil
 }
+
+// Unpublished returns list of unpublished hearings
+func (s Service) Unpublished(ctx context.Context, mark bool) ([]domain.IHearing, error) {
+	l := s.logger.With().Str("method", "Unpublished").Logger()
+	l.Info().Msg("fetching unpublished hearings")
+	unpublished, err := s.db.Unpublished(ctx, mark)
+	if err != nil {
+		l.Error().Err(err).Msg("failed to get unpublished hearings")
+		return nil, err
+	}
+	// Cast slice of domain.Hearing to slice of domain.IHearing
+	hearings := make([]domain.IHearing, 0)
+	for _, h := range unpublished {
+		hearings = append(hearings, h)
+	}
+	return hearings, nil
+}
