@@ -91,7 +91,7 @@ func New(opt *Options) *Scrapper {
 
 // ExtractContent returns content of passed link.
 // Option "force" forces to fetch the page from the network instead of from the cache.
-func (s *Scrapper) ExtractContent(ctx context.Context, link, selector string, force bool) ([]string, error) {
+func (s Scrapper) ExtractContent(ctx context.Context, link, selector string, force bool) ([]string, error) {
 	l := s.logger.With().
 		Str("link", link).
 		Str("selector", selector).
@@ -159,7 +159,7 @@ func (s Scrapper) ExtractLinks(ctx context.Context, link, selector string, force
 }
 
 // fetch HTML from link
-func (s *Scrapper) fetch(ctx context.Context, link string, force bool) ([]byte, error) {
+func (s Scrapper) fetch(ctx context.Context, link string, force bool) ([]byte, error) {
 	l := s.logger.With().
 		Str("method", "fetch").
 		Str("link", link).
@@ -221,12 +221,12 @@ func (s *Scrapper) fetch(ctx context.Context, link string, force bool) ([]byte, 
 }
 
 // create cache directory if it doesn't exist
-func (s *Scrapper) createCacheDirectory() error {
+func (s Scrapper) createCacheDirectory() error {
 	return os.MkdirAll(path.Clean(s.cacheDir), 0o750)
 }
 
 // save html page to cache
-func (s *Scrapper) saveToCache(link string, body []byte) error {
+func (s Scrapper) saveToCache(link string, body []byte) error {
 	l := s.logger.With().
 		Str("method", "saveToCache").
 		Str("link", link).
@@ -256,7 +256,7 @@ func (s *Scrapper) saveToCache(link string, body []byte) error {
 }
 
 // load html page from cache
-func (s *Scrapper) loadFromCache(link string) ([]byte, error) {
+func (s Scrapper) loadFromCache(link string) ([]byte, error) {
 	l := s.logger.With().
 		Str("method", "loadFromCache").
 		Str("link", link).
@@ -281,7 +281,7 @@ func (s *Scrapper) loadFromCache(link string) ([]byte, error) {
 }
 
 // create safe file name from link
-func (s *Scrapper) safeFileNameFromLink(link string) string {
+func (s Scrapper) safeFileNameFromLink(link string) string {
 	str := &strings.Builder{}
 	u, err := url.Parse(link)
 	if err == nil {
