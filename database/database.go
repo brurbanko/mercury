@@ -277,7 +277,30 @@ func (c Client) List(ctx context.Context) ([]domain.Hearing, error) {
 	if err != nil {
 		return res, err
 	}
-	for _, th := range tempHearings {
+	res = c.castToHearing(tempHearings)
+	return res, err
+}
+
+// Unpublished hearings in database
+func (c Client) Unpublished(ctx context.Context, mark bool) ([]domain.Hearing, error) {
+	tempHearings := make([]hearing, 0)
+	res := make([]domain.Hearing, 0)
+	query := "SELECT id, link, topics, proposals, place, date AS date, published, raw FROM hearings WHERE published IS FALSE ORDER BY date"
+	if mark {
+		query = "UPDATE hearings SET published = TRUE WHERE published IS FALSE RETURNING id, link, topics, proposals, place, date AS date, published, raw"
+	}
+	err := c.db.SelectContext(ctx, &tempHearings, query)
+	if err != nil {
+		return res, err
+	}
+	res = c.castToHearing(tempHearings)
+	return res, err
+}
+
+func (c Client) castToHearing(h []hearing) []domain.Hearing {
+	res := make([]domain.Hearing, 0)
+	var err error
+	for _, th := range h {
 		hp := domain.Hearing{}
 		hp.URL = th.Link
 		hp.Time, err = time.Parse(timeFormat, th.Date)
@@ -291,6 +314,5 @@ func (c Client) List(ctx context.Context) ([]domain.Hearing, error) {
 		hp.Raw = strings.Split(th.Raw, sliceDelimeter)
 		res = append(res, hp)
 	}
-
-	return res, err
+	return res
 }
