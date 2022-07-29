@@ -58,7 +58,7 @@ func New(cfg *Config) *Service {
 }
 
 // List of hearings
-func (s *Service) List(ctx context.Context) ([]domain.Hearing, error) {
+func (s Service) List(ctx context.Context) ([]domain.Hearing, error) {
 	links, err := s.db.List(ctx)
 
 	// Reverse slice. Older links will be at begin
@@ -69,7 +69,7 @@ func (s *Service) List(ctx context.Context) ([]domain.Hearing, error) {
 }
 
 // FetchLinks of public hearings
-func (s *Service) FetchLinks(ctx context.Context) ([]string, error) {
+func (s Service) FetchLinks(ctx context.Context) ([]string, error) {
 	links, err := s.scrapper.ExtractLinks(ctx,
 		"https://bga32.ru/arxitektura-i-gradostroitelstvo/publichnye-slushaniya/",
 		".thecontent ol li a",
@@ -83,7 +83,7 @@ func (s *Service) FetchLinks(ctx context.Context) ([]string, error) {
 }
 
 // ProcessLink and get information about public hearing
-func (s *Service) ProcessLink(ctx context.Context, link string) (domain.Hearing, error) {
+func (s Service) ProcessLink(ctx context.Context, link string) (domain.Hearing, error) {
 	l := s.logger.With().
 		Str("method", "ProcessLink").
 		Str("link", link).
@@ -106,12 +106,12 @@ func (s *Service) ProcessLink(ctx context.Context, link string) (domain.Hearing,
 }
 
 // Find public hearing by URL
-func (s *Service) Find(ctx context.Context, link string) (domain.Hearing, error) {
+func (s Service) Find(ctx context.Context, link string) (domain.Hearing, error) {
 	return s.db.Find(ctx, link)
 }
 
 // NewHearings returns list of new hearings from site
-func (s *Service) NewHearings(ctx context.Context) ([]domain.Hearing, error) {
+func (s Service) NewHearings(ctx context.Context) ([]domain.Hearing, error) {
 	l := s.logger.With().Str("method", "NewHearings").Logger()
 	l.Info().Msg("fetching new hearings")
 	links, err := s.FetchLinks(ctx)
