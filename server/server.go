@@ -163,7 +163,7 @@ func (s Server) listHearings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
-	s.logger.Debug().Msg("new hearings")
+	s.logger.Debug().Msg("searching new hearings")
 	h, err := s.hearings.NewHearings(r.Context())
 	if err != nil {
 		s.logger.Err(err).Msg("failed find new hearings")
@@ -179,9 +179,9 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) unpublishedHearings(w http.ResponseWriter, r *http.Request) {
-	s.logger.Debug().Msg("unpublished hearings")
+	s.logger.Debug().Msg("getting unpublished hearings")
 	mark := r.URL.Query().Get("dry-run") != "true"
-	h, err := s.hearings.Unpublished(r.Context(), mark)
+	h, err := s.hearings.ListUnpublished(r.Context(), mark)
 	if err != nil {
 		s.logger.Err(err).Msg("failed find unpublished hearings")
 		render.Status(r, http.StatusInternalServerError)
