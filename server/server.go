@@ -172,9 +172,28 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	extra := ""
+	publish := r.URL.Query().Get("publish") == "true"
+	format := r.URL.Query().Get("format")
+
+	if !publish {
+		// TODO read from POST body
+	}
+
+	if publish {
+		err = s.hearings.Publish(r.Context(), r.URL.Query().Get("format"))
+		if err != nil {
+			s.logger.Err(err).Msgf("failed publish %d hearings", len(h))
+			render.Status(r, http.StatusInternalServerError)
+			render.JSON(w, r, errorResponse{err.Error()})
+			return
+		}
+		extra = "and published"
+	}
+
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, statusResponse{
-		Status: fmt.Sprintf("found %d new hearings", len(h)),
+		Status: fmt.Sprintf("found %s %d new hearings", extra, len(h)),
 	})
 }
 

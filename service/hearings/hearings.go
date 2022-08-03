@@ -177,3 +177,10 @@ func (s Service) ListUnpublished(ctx context.Context, mark bool) ([]domain.IHear
 	}
 	return hearings, nil
 }
+
+func (s Service) Publish(ctx context.Context, format string) error {
+	l := s.logger.With().Str("method", "Publish").Logger()
+	l.Info().Msg("marking hearing as published")
+	// TODO implement publishing formatted hearings to URL from config
+	return nil
+}
