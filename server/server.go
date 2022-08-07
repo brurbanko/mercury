@@ -178,15 +178,15 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 
 	if !publish {
 		// 64kb for some fields is enough
-		err = r.ParseMultipartForm(64 << 10)
+		err = r.ParseForm()
 		if err == nil {
-			publish = r.MultipartForm.Value["publish"][0] == "true"
-			format = r.MultipartForm.Value["format"][0]
+			publish = r.Form.Get("publish") == "true"
+			format = r.Form.Get("format")
 		}
 	}
-
+	cnt := 0
 	if publish {
-		err = s.hearings.Publish(r.Context(), format)
+		cnt, err = s.hearings.Publish(r.Context(), format)
 		if err != nil {
 			s.logger.Err(err).Msgf("failed publish %d hearings", len(h))
 			render.Status(r, http.StatusInternalServerError)
@@ -194,6 +194,10 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		extra = "and published"
+	}
+
+	if cnt == 0 {
+		cnt = len(h)
 	}
 
 	render.Status(r, http.StatusOK)

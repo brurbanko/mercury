@@ -20,6 +20,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/brurbanko/mercury/internal/scrapper"
+
+	"github.com/brurbanko/mercury/internal/publisher"
+
 	"github.com/brurbanko/mercury/config"
 	"github.com/brurbanko/mercury/database"
 	"github.com/brurbanko/mercury/server"
@@ -71,9 +75,28 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 		}
 	}()
 
+	s := scrapper.New(&scrapper.Options{
+		Logger:      logger,
+		UserAgent:   "urbanist-public-hearings (https://t.me/public_bryansk_bot)",
+		MaxBodySize: 1024 * 1024,
+		CacheDir:    "./cache",
+	})
+	p, err := publisher.New(&publisher.Options{
+		Logger:       logger,
+		URL:          cfg.Publish.URL,
+		Method:       cfg.Publish.Method,
+		BodyTemplate: cfg.Publish.Template,
+		Headers:      cfg.Publish.Headers,
+	})
+	if err != nil {
+		return fmt.Errorf("failed create publisher: %w", err)
+	}
+
 	srv := hearings.New(&hearings.Config{
-		Database: db,
-		Logger:   logger,
+		Database:  db,
+		Scrapper:  s,
+		Publisher: p,
+		Logger:    logger,
 	})
 
 	http := server.New(server.Config{

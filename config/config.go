@@ -14,7 +14,9 @@
 
 package config
 
-import "github.com/cristalhq/aconfig"
+import (
+	"github.com/cristalhq/aconfig"
+)
 
 // Config of service
 type Config struct {
@@ -31,6 +33,12 @@ type Config struct {
 	}
 	Database struct {
 		DSN string `env:"DATABASE_DSN" default:"database"`
+	}
+	Publish struct {
+		URL      string
+		Method   string              `default:"POST"`
+		Template string              `default:"{\"chat_id\":\"123456789\",\"text\":\"{{.Message}}\"}"`
+		Headers  map[string][]string `default:"Content-Type:application/json"`
 	}
 }
 

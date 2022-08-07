@@ -17,6 +17,8 @@ package hearings
 import (
 	"context"
 
+	"github.com/brurbanko/mercury/internal/publisher"
+
 	"github.com/brurbanko/mercury/internal/scrapper"
 
 	"github.com/brurbanko/mercury/database"
@@ -31,13 +33,16 @@ type Service struct {
 	parser *Parser
 	db     *database.Client
 
-	scrapper *scrapper.Scrapper
+	scrapper  *scrapper.Scrapper
+	publisher *publisher.Publisher
 }
 
 // Config for hearings service
 type Config struct {
-	Database *database.Client
-	Logger   *zerolog.Logger
+	Database  *database.Client
+	Logger    *zerolog.Logger
+	Scrapper  *scrapper.Scrapper
+	Publisher *publisher.Publisher
 }
 
 // New returns an instance of hearing service
@@ -48,12 +53,8 @@ func New(cfg *Config) *Service {
 		db:     cfg.Database,
 		parser: NewParser(),
 
-		scrapper: scrapper.New(&scrapper.Options{
-			Logger:      &l,
-			UserAgent:   "urbanist-public-hearings (https://t.me/public_bryansk_bot)",
-			MaxBodySize: 1024 * 1024,
-			CacheDir:    "./cache",
-		}),
+		scrapper:  cfg.Scrapper,
+		publisher: cfg.Publisher,
 	}
 }
 
@@ -178,9 +179,36 @@ func (s Service) ListUnpublished(ctx context.Context, mark bool) ([]domain.IHear
 	return hearings, nil
 }
 
-func (s Service) Publish(ctx context.Context, format string) error {
+// Publish all unpublished hearings.
+// Get it from DB and publish them one by one to URL
+func (s Service) Publish(ctx context.Context, format string) (int, error) {
 	l := s.logger.With().Str("method", "Publish").Logger()
-	l.Info().Msg("marking hearing as published")
-	// TODO implement publishing formatted hearings to URL from config
-	return nil
+	l.Info().Msg("publishing new hearings")
+	unpublished, err := s.db.Unpublished(ctx, false)
+	if err != nil {
+		l.Error().Err(err).Msg("failed to get unpublished hearings")
+		return 0, err
+	}
+
+	for i, h := range unpublished {
+		var message string
+		if format == "markdown" {
+			message = h.Markdown()
+		} else {
+			message = h.String()
+		}
+		err = s.publisher.Publish(ctx, message)
+		if err != nil {
+			l.Error().Err(err).Str("link", h.URL).Msg("failed to publish hearing")
+			return i, err
+		}
+		l.Info().Str("link", h.URL).Msg("hearing published")
+		err = s.db.MarkPublished(ctx, h.URL)
+		if err != nil {
+			l.Error().Err(err).Str("link", h.URL).Msg("failed to mark hearing as published")
+			return i, err
+		}
+
+	}
+	return len(unpublished), nil
 }

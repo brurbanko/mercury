@@ -298,6 +298,12 @@ func (c Client) Unpublished(ctx context.Context, mark bool) ([]domain.Hearing, e
 	return res, err
 }
 
+func (c Client) MarkPublished(ctx context.Context, link string) error {
+	query := "UPDATE hearings SET published = TRUE WHERE link = $1"
+	_, err := c.db.ExecContext(ctx, query, link)
+	return err
+}
+
 func (c Client) castToHearing(h []hearing) []domain.Hearing {
 	res := make([]domain.Hearing, 0)
 	var err error
