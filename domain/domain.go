@@ -83,27 +83,27 @@ func (h Hearing) Markdown() string {
 	}
 	var sb strings.Builder
 	sb.WriteString("*")
-	sb.WriteString(h.Time.Format("02.01.2006"))
+	sb.WriteString(h.escape(h.Time.Format("02.01.2006")))
 	sb.WriteString(" в ")
-	sb.WriteString(h.Time.Format("15:04"))
+	sb.WriteString(h.escape(h.Time.Format("15:04")))
 	sb.WriteString(" в ")
-	sb.WriteString(h.Place)
+	sb.WriteString(h.escape(h.Place))
 	sb.WriteString("*")
 
 	if len(h.Topic) == 1 {
 		sb.WriteString(" состоятся публичные слушания ")
-		sb.WriteString(h.Topic[0])
+		sb.WriteString(h.escape(h.Topic[0]))
 	} else {
 		sb.WriteString(" состоятся публичные слушания:")
 		for _, t := range h.Topic {
-			sb.WriteString("\n\n - ")
-			sb.WriteString(t)
+			sb.WriteString(h.escape("\n\n - "))
+			sb.WriteString(h.escape(t))
 		}
 	}
 	sb.WriteString("\n\n")
 
 	for _, p := range h.Proposals {
-		sb.WriteString(p)
+		sb.WriteString(h.escape(p))
 		sb.WriteString("\n\n")
 	}
 
@@ -112,4 +112,13 @@ func (h Hearing) Markdown() string {
 	sb.WriteString(")\n")
 
 	return sb.String()
+}
+
+func (h Hearing) escape(s string) string {
+	return strings.NewReplacer(
+		"_", "\\_", "*", "\\*", "[", "\\[", "]", "\\]", "(",
+		"\\(", ")", "\\)", "~", "\\~", "`", "\\`", ">", "\\>",
+		"#", "\\#", "+", "\\+", "-", "\\-", "=", "\\=", "|",
+		"\\|", "{", "\\{", "}", "\\}", ".", "\\.", "!", "\\!",
+	).Replace(s)
 }
