@@ -268,7 +268,7 @@ func (s Scrapper) loadFromCache(link string) ([]byte, error) {
 	}
 	file, err := os.Open(path.Clean(path.Join(s.cacheDir, s.safeFileNameFromLink(link))))
 	if err != nil {
-		l.Error().Err(err).Msg("error opening cache file")
+		l.Debug().Err(err).Msg("error opening cache file")
 		return nil, err
 	}
 	body, err := io.ReadAll(file)

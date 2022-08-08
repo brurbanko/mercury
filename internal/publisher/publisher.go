@@ -76,6 +76,10 @@ func New(opt *Options) (*Publisher, error) {
 
 // Publish message
 func (p *Publisher) Publish(ctx context.Context, message string) error {
+	if p.url == "" {
+		p.logger.Debug().Msg("URL is empty. Publish skipped")
+		return nil
+	}
 	p.logger.Debug().Msg("Publishing")
 	if p.url == "" {
 		p.logger.Error().Msg("URL is not set")
