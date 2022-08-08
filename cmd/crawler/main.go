@@ -78,7 +78,7 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 	s := scrapper.New(&scrapper.Options{
 		Logger:      logger,
 		UserAgent:   "urbanist-public-hearings (https://t.me/public_bryansk_bot)",
-		MaxBodySize: 1024 * 1024,
+		MaxBodySize: 1 << 20, // 1MB
 		CacheDir:    "./cache",
 	})
 	p, err := publisher.New(&publisher.Options{

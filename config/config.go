@@ -35,7 +35,7 @@ type Config struct {
 		DSN string `env:"DATABASE_DSN" default:"database"`
 	}
 	Publish struct {
-		URL      string
+		URL      string              `default:"http://api.telegram.org/bot{TOKEN}/sendMessage"`
 		Method   string              `default:"POST"`
 		Template string              `default:"{\"chat_id\":\"123456789\",\"text\":\"{{.Message}}\"}"`
 		Headers  map[string][]string `default:"Content-Type:application/json"`
