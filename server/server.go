@@ -94,6 +94,7 @@ func (s Server) initRouter(token string) {
 	mux.Use(middleware.Recoverer)
 
 	if token != "" {
+		s.logger.Info().Msg("auth token enabled")
 		mux.Use(s.authTokenMiddleware(token))
 	}
 
@@ -184,25 +185,22 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 			format = r.Form.Get("format")
 		}
 	}
-	cnt := 0
+	cnt := len(h)
 	if publish {
-		cnt, err = s.hearings.Publish(r.Context(), format)
+		c, err := s.hearings.Publish(r.Context(), format)
 		if err != nil {
 			s.logger.Err(err).Msgf("failed publish %d hearings", len(h))
 			render.Status(r, http.StatusInternalServerError)
 			render.JSON(w, r, errorResponse{err.Error()})
 			return
 		}
-		extra = "and published"
-	}
-
-	if cnt == 0 {
-		cnt = len(h)
+		extra = " and published"
+		cnt = c
 	}
 
 	render.Status(r, http.StatusOK)
 	render.JSON(w, r, statusResponse{
-		Status: fmt.Sprintf("found %s %d new hearings", extra, len(h)),
+		Status: fmt.Sprintf("found%s %d new hearings", extra, cnt),
 	})
 }
 
