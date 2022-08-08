@@ -20,10 +20,15 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/brurbanko/mercury/internal/config"
-	"github.com/brurbanko/mercury/internal/crawler"
-	"github.com/brurbanko/mercury/internal/database"
-	"github.com/brurbanko/mercury/internal/service"
+	"github.com/brurbanko/mercury/internal/scrapper"
+
+	"github.com/brurbanko/mercury/internal/publisher"
+
+	"github.com/brurbanko/mercury/config"
+	"github.com/brurbanko/mercury/database"
+	"github.com/brurbanko/mercury/server"
+
+	"github.com/brurbanko/mercury/service/hearings"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -60,23 +65,47 @@ func main() {
 func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, logger *zerolog.Logger) error {
 	defer cancel()
 
-	db, err := database.New(cfg.Database.DSN)
+	db, err := database.New(cfg.Database.DSN, logger)
 	if err != nil {
 		return fmt.Errorf("failed connect to database: %w", err)
 	}
+	defer func() {
+		if cerr := db.Close(); cerr != nil {
+			logger.Error().Err(cerr).Msg("failed close database")
+		}
+	}()
 
-	bga := crawler.New(cfg.Crawler.Domain, cfg.Crawler.UserAgent)
+	s := scrapper.New(&scrapper.Options{
+		Logger:      logger,
+		UserAgent:   "urbanist-public-hearings (https://t.me/public_bryansk_bot)",
+		MaxBodySize: 1 << 20, // 1MB
+		CacheDir:    "./cache",
+	})
+	p, err := publisher.New(&publisher.Options{
+		Logger: logger,
+		Token:  cfg.Publish.Token,
+		ChatID: cfg.Publish.ChatID,
+	})
+	if err != nil {
+		return fmt.Errorf("failed create publisher: %w", err)
+	}
 
-	// like https://github.com/queuedb/queuedb/blob/master/cmd/queuedb/main.go
-	srv := service.New(service.Config{
-		Host:     cfg.HTTP.Host,
-		Port:     cfg.HTTP.Port,
-		Database: db,
-		Crawler:  bga,
-		Logger:   logger,
+	srv := hearings.New(&hearings.Config{
+		Database:  db,
+		Scrapper:  s,
+		Publisher: p,
+		Logger:    logger,
 	})
 
-	go srv.Start(ctx, cancel)
+	http := server.New(server.Config{
+		Host:     cfg.Server.Host,
+		Port:     cfg.Server.Port,
+		Token:    cfg.Server.Token,
+		Logger:   logger,
+		Hearings: srv,
+	})
+
+	go http.Start(ctx, cancel)
 
 	<-ctx.Done()
 

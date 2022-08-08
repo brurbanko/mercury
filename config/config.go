@@ -14,21 +14,29 @@
 
 package config
 
-import "github.com/cristalhq/aconfig"
+import (
+	"github.com/cristalhq/aconfig"
+)
 
 // Config of service
 type Config struct {
-	Debug   bool `env:"DEBUG"`
+	Debug   bool   `env:"DEBUG"`
+	TempDir string `env:"TMP_DIR"`
 	Crawler struct {
 		Domain    string `env:"DOMAIN" default:"bga32.ru"`
 		UserAgent string `env:"USERAGENT" default:"urbanist-public-hearings (https://t.me/public_bryansk_bot)"`
 	}
-	HTTP struct {
-		Host string `env:"HOST"`
-		Port string `env:"PORT" default:"8080"`
+	Server struct {
+		Host  string `env:"HOST"`
+		Port  string `env:"PORT" default:"8080"`
+		Token string `env:"TOKEN"`
 	}
 	Database struct {
 		DSN string `env:"DATABASE_DSN" default:"database"`
+	}
+	Publish struct {
+		Token  string `env:"TOKEN"`
+		ChatID string `env:"CHAT"`
 	}
 }
 
