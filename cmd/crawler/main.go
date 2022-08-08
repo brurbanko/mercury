@@ -82,11 +82,9 @@ func run(ctx context.Context, cancel context.CancelFunc, cfg *config.Config, log
 		CacheDir:    "./cache",
 	})
 	p, err := publisher.New(&publisher.Options{
-		Logger:       logger,
-		URL:          cfg.Publish.URL,
-		Method:       cfg.Publish.Method,
-		BodyTemplate: cfg.Publish.Template,
-		Headers:      cfg.Publish.Headers,
+		Logger: logger,
+		Token:  cfg.Publish.Token,
+		ChatID: cfg.Publish.ChatID,
 	})
 	if err != nil {
 		return fmt.Errorf("failed create publisher: %w", err)

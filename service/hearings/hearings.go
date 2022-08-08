@@ -180,7 +180,7 @@ func (s Service) ListUnpublished(ctx context.Context, mark bool) ([]domain.IHear
 }
 
 // Publish all unpublished hearings.
-// Get it from DB and publish them one by one to URL
+// Get it from DB and publish them one by one to telegram channel.
 func (s Service) Publish(ctx context.Context, format string) (int, error) {
 	l := s.logger.With().Str("method", "Publish").Logger()
 	l.Info().Msg("publishing new hearings")

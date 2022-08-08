@@ -17,10 +17,10 @@ package publisher
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"html/template"
+	"io"
 	"net/http"
-	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -29,20 +29,24 @@ import (
 type Publisher struct {
 	logger *zerolog.Logger
 
-	url          string
-	method       string
-	bodyTemplate *template.Template
-	headers      map[string][]string
+	skip bool
+	url  string
+	chat string
 }
 
 // Options for creating a new publisher
 type Options struct {
 	Logger *zerolog.Logger
 
-	URL          string
-	Method       string
-	BodyTemplate string
-	Headers      map[string][]string
+	Token  string
+	ChatID string
+}
+
+type tgMessage struct {
+	ChatID         string `json:"chat_id"`
+	ParseMode      string `json:"parse_mode"`
+	Text           string `json:"text"`
+	DisablePreview bool   `json:"disable_web_page_preview"`
 }
 
 // New instance of publisher
@@ -54,56 +58,45 @@ func New(opt *Options) (*Publisher, error) {
 		l = opt.Logger.With().Str("package", "publisher").Logger()
 	}
 
-	if opt.Method == "" {
-		opt.Method = "POST"
-	}
-
-	tmpl, err := template.New("bodyTemplate").Parse(opt.BodyTemplate)
-	if err != nil {
-		l.Error().Err(err).Msg("error parsing bodyTemplate")
-		return nil, err
-	}
-
 	return &Publisher{
 		logger: &l,
 
-		url:          opt.URL,
-		method:       opt.Method,
-		bodyTemplate: tmpl,
-		headers:      opt.Headers,
+		skip: opt.Token == "",
+		url:  fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", opt.Token),
+		chat: opt.ChatID,
 	}, nil
 }
 
 // Publish message
-func (p *Publisher) Publish(ctx context.Context, message string) error {
-	if p.url == "" {
-		p.logger.Debug().Msg("URL is empty. Publish skipped")
+func (p Publisher) Publish(ctx context.Context, message string) error {
+	if p.skip {
+		p.logger.Debug().Msg("Token is empty. Publish skipped")
 		return nil
 	}
 	p.logger.Debug().Msg("Publishing")
-	if p.url == "" {
-		p.logger.Error().Msg("URL is not set")
-		return fmt.Errorf("URL is not set")
-	}
 
+	msg := tgMessage{
+		ParseMode:      "MarkdownV2",
+		DisablePreview: true,
+		ChatID:         p.chat,
+		Text:           message,
+	}
 	var body bytes.Buffer
-	err := p.bodyTemplate.Execute(&body, struct{ Message string }{Message: message})
+	err := json.NewEncoder(&body).Encode(msg)
 	if err != nil {
 		p.logger.Error().Err(err).Msg("error creating body")
 		return err
 	}
+
 	// prepare request
-	req, err := http.NewRequestWithContext(ctx, p.method, p.url, &body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.url, &body)
 	if err != nil {
 		p.logger.Error().Err(err).Msg("error creating request")
 		return err
 	}
-	// add headers
-	if p.headers != nil {
-		for k, v := range p.headers {
-			req.Header.Set(k, strings.Join(v, ","))
-		}
-	}
+
+	req.Header.Set("Content-Type", "application/json")
+
 	// send request
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -120,7 +113,8 @@ func (p *Publisher) Publish(ctx context.Context, message string) error {
 	p.logger.Debug().Msg("response received")
 	if resp.StatusCode != http.StatusOK {
 		p.logger.Error().Msgf("response status code is not OK: %d", resp.StatusCode)
-		p.logger.Error().Msgf("response bodyTemplate: %s", resp.Body)
+		response, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+		p.logger.Error().Msgf("response: %s", response)
 		return fmt.Errorf("response status code is not OK: %d", resp.StatusCode)
 	}
 
