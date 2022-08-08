@@ -32,7 +32,7 @@ type Config struct {
 		Token string `env:"TOKEN"`
 	}
 	Database struct {
-		DSN string `env:"DATABASE_DSN" default:"database"`
+		DSN string `env:"DSN" default:"database"`
 	}
 	Publish struct {
 		Token  string `env:"TOKEN"`
