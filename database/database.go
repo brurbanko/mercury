@@ -242,7 +242,7 @@ func (c Client) Update(ctx context.Context, publicHearing domain.Hearing) error 
 		raw = currentHearing.Raw
 	}
 
-	query := "UPDATE hearings SET topic = $2, place = $3, date = $4, published = $5, proposals = $6, raw = $7 WHERE link = $1"
+	query := "UPDATE hearings SET topics = $2, place = $3, date = $4, published = $5, proposals = $6, raw = $7 WHERE link = $1"
 	_, err = c.db.ExecContext(ctx, query, publicHearing.URL, topic, place, dateStr, published, proposals, raw)
 
 	return err
@@ -298,6 +298,7 @@ func (c Client) Unpublished(ctx context.Context, mark bool) ([]domain.Hearing, e
 	return res, err
 }
 
+// MarkPublished marks published hearings in database
 func (c Client) MarkPublished(ctx context.Context, link string) error {
 	query := "UPDATE hearings SET published = TRUE WHERE link = $1"
 	_, err := c.db.ExecContext(ctx, query, link)

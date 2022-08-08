@@ -175,19 +175,17 @@ func (s Server) newHearings(w http.ResponseWriter, r *http.Request) {
 
 	extra := ""
 	publish := r.URL.Query().Get("publish") == "true"
-	format := r.URL.Query().Get("format")
 
 	if !publish {
 		// 64kb for some fields is enough
 		err = r.ParseForm()
 		if err == nil {
 			publish = r.Form.Get("publish") == "true"
-			format = r.Form.Get("format")
 		}
 	}
 	cnt := len(h)
 	if publish {
-		c, err := s.hearings.Publish(r.Context(), format)
+		c, err := s.hearings.Publish(r.Context(), "markdown")
 		if err != nil {
 			s.logger.Err(err).Msgf("failed publish %d hearings", len(h))
 			render.Status(r, http.StatusInternalServerError)
