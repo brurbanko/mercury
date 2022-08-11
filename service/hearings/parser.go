@@ -89,10 +89,10 @@ func NewParser() *Parser {
 
 // Content return full data of public hearing
 func (p *Parser) Content(hearing domain.Hearing) (domain.Hearing, error) {
-	return p.prepare(hearing)
+	return p.prepareSingle(hearing)
 }
 
-func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
+func (p *Parser) prepareSingle(hearing domain.Hearing) (domain.Hearing, error) {
 	ph := domain.Hearing{
 		URL: hearing.URL,
 		Raw: hearing.Raw,
@@ -124,7 +124,7 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 		if top != "" {
 			ph.Topic = append(ph.Topic, top)
 		}
-		ph.Place = parts[0]
+		ph.Place = []string{parts[0]}
 	} else {
 		// Multiple topics in different paragraphs
 		for i := start; i < next; i++ {
@@ -134,7 +134,7 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 				if len(parts) == 0 {
 					return ph, fmt.Errorf("failed parse content. cannot split to time and place")
 				}
-				ph.Place = parts[0]
+				ph.Place = []string{parts[0]}
 			} else {
 				//	Next paragraphs with topics
 				top := p.clearString(content[i])
@@ -150,8 +150,8 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 	}
 
 	/* DEFINE PLACE AND TIME */
-	if ph.Place != "" {
-		match := p.reTimePlace.FindStringSubmatch(ph.Place)
+	if len(ph.Place) > 0 {
+		match := p.reTimePlace.FindStringSubmatch(ph.Place[0])
 
 		paramsMap := make(map[string]string)
 		for i, name := range p.reTimePlace.SubexpNames() {
@@ -187,20 +187,22 @@ func (p *Parser) prepare(hearing domain.Hearing) (domain.Hearing, error) {
 			minutes = 0
 		}
 
-		ph.Time = time.Date(year, months[paramsMap["month"]], day, hours, minutes, 0, 0, serviceTimeLocation)
-		if ph.Time.Before(beginnigTime) {
+		ph.Time = []time.Time{
+			time.Date(year, months[paramsMap["month"]], day, hours, minutes, 0, 0, serviceTimeLocation),
+		}
+		if ph.Time[0].Before(beginnigTime) {
 			return ph, fmt.Errorf("failed parse date. the extracted date (%s) is earlier than the beginning time (%s): %s", ph.Time, beginnigTime, ph.Place)
 		}
 		if timeError {
 			return ph, fmt.Errorf("failed parse date. cannot get time from place: %s", ph.Place)
 		}
 		// Replace place
-		ph.Place = paramsMap["place"]
+		ph.Place = []string{paramsMap["place"]}
 	} else {
 		return ph, fmt.Errorf("failed parse date and place. empty string")
 	}
 
-	if ph.Place == "" {
+	if ph.Place[0] == "" {
 		return ph, fmt.Errorf("failed parse date and place. result is empty place")
 	}
 
