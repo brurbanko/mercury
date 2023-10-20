@@ -184,6 +184,11 @@ func (c Client) setSchemaVersion(version int) error {
 
 // Create new hearing in database
 func (c Client) Create(ctx context.Context, publicHearing domain.Hearing) error {
+	var dates []string
+	for _, dt := range publicHearing.Time {
+		dates = append(dates, dt.Format(timeFormat))
+	}
+
 	query := "INSERT INTO hearings(link,topics,proposals,place,date,raw,created_at) VALUES($1, $2, $3, $4, $5, $6, $7)"
 	_, err := c.db.ExecContext(
 		ctx,
@@ -191,8 +196,8 @@ func (c Client) Create(ctx context.Context, publicHearing domain.Hearing) error 
 		publicHearing.URL,
 		strings.Join(publicHearing.Topic, sliceDelimeter),
 		strings.Join(publicHearing.Proposals, sliceDelimeter),
-		publicHearing.Place,
-		publicHearing.Time.Format(timeFormat),
+		strings.Join(publicHearing.Place, sliceDelimeter),
+		strings.Join(dates, sliceDelimeter),
 		strings.Join(publicHearing.Raw, sliceDelimeter),
 		time.Now(),
 	)
@@ -221,18 +226,18 @@ func (c Client) Update(ctx context.Context, publicHearing domain.Hearing) error 
 		topic = currentHearing.Topic
 	}
 
-	if place == "" {
+	if len(place) == 0 {
 		place = currentHearing.Place
 	}
 
-	if date.IsZero() {
+	if len(date) == 0 {
 		date = currentHearing.Time
 	}
-	dateStr := date.Format(timeFormat)
-
-	if !published {
-		published = currentHearing.Published
+	var dates []string
+	for _, dt := range date {
+		dates = append(dates, dt.Format(timeFormat))
 	}
+	dateStr := strings.Join(dates, sliceDelimeter)
 
 	if len(proposals) == 0 {
 		proposals = currentHearing.Proposals
@@ -240,6 +245,10 @@ func (c Client) Update(ctx context.Context, publicHearing domain.Hearing) error 
 
 	if len(raw) == 0 {
 		raw = currentHearing.Raw
+	}
+
+	if !published {
+		published = currentHearing.Published
 	}
 
 	query := "UPDATE hearings SET topics = $2, place = $3, date = $4, published = $5, proposals = $6, raw = $7 WHERE link = $1"
@@ -259,12 +268,16 @@ func (c Client) Find(ctx context.Context, link string) (domain.Hearing, error) {
 	}
 
 	hp.URL = tempHearing.Link
-	hp.Time, _ = time.Parse(timeFormat, tempHearing.Date)
-	hp.Place = tempHearing.Place
+	hp.Place = strings.Split(tempHearing.Place, sliceDelimeter)
 	hp.Topic = strings.Split(tempHearing.Topics, sliceDelimeter)
 	hp.Proposals = strings.Split(tempHearing.Proposals, sliceDelimeter)
 	hp.Published = tempHearing.Published
 	hp.Raw = strings.Split(tempHearing.Raw, sliceDelimeter)
+
+	for _, st := range strings.Split(tempHearing.Date, sliceDelimeter) {
+		dt, _ := time.Parse(timeFormat, st)
+		hp.Time = append(hp.Time, dt)
+	}
 
 	return hp, nil
 }
@@ -307,19 +320,23 @@ func (c Client) MarkPublished(ctx context.Context, link string) error {
 
 func (c Client) castToHearing(h []hearing) []domain.Hearing {
 	res := make([]domain.Hearing, 0)
-	var err error
 	for _, th := range h {
 		hp := domain.Hearing{}
 		hp.URL = th.Link
-		hp.Time, err = time.Parse(timeFormat, th.Date)
-		if err != nil {
-			break
-		}
-		hp.Place = th.Place
+		hp.Place = strings.Split(th.Place, sliceDelimeter)
 		hp.Topic = strings.Split(th.Topics, sliceDelimeter)
 		hp.Proposals = strings.Split(th.Proposals, sliceDelimeter)
 		hp.Published = th.Published
 		hp.Raw = strings.Split(th.Raw, sliceDelimeter)
+
+		for _, st := range strings.Split(th.Date, sliceDelimeter) {
+			dt, err := time.Parse(timeFormat, st)
+			if err != nil {
+				break
+			}
+			hp.Time = append(hp.Time, dt)
+		}
+
 		res = append(res, hp)
 	}
 	return res

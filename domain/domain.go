@@ -28,33 +28,45 @@ type IHearing interface {
 
 // Hearing of BGA32
 type Hearing struct {
-	ID        string    `json:"id"`
-	Topic     []string  `json:"topic"`
-	Proposals []string  `json:"proposals"`
-	Place     string    `json:"place"`
-	URL       string    `json:"url"`
-	Time      time.Time `json:"time"`
-	Published bool      `json:"published"`
-	Raw       []string  `json:"raw"`
+	ID        string      `json:"id"`
+	Topic     []string    `json:"topic"`
+	Proposals []string    `json:"proposals"`
+	Place     []string    `json:"place"`
+	Time      []time.Time `json:"time"`
+	URL       string      `json:"url"`
+	Published bool        `json:"published"`
+	Raw       []string    `json:"raw"`
 }
 
 // String returns text representation of hearing
 func (h Hearing) String() string {
-	if h.Place == "" {
+	if len(h.Place) == 0 {
 		return ""
 	}
-	var sb strings.Builder
-	sb.WriteString(h.Time.Format("02.01.2006"))
-	sb.WriteString(" в ")
-	sb.WriteString(h.Time.Format("15:04"))
-	sb.WriteString(" в ")
-	sb.WriteString(h.Place)
 
+	var sb strings.Builder
+
+	singlePlace := len(h.Place) == 1
+
+	// If one place
+	if singlePlace {
+		// Date and time of hearing
+		sb.WriteString(h.Time[0].Format("02.01.2006"))
+		sb.WriteString(" в ")
+		sb.WriteString(h.Time[0].Format("15:04"))
+		// Place of hearing
+		sb.WriteString(" в ")
+		sb.WriteString(h.Place[0])
+		sb.WriteString(" состоятся публичные слушания")
+	} else {
+		sb.WriteString("Состоятся публичные слушания")
+	}
+	// Topics of hearing
 	if len(h.Topic) == 1 {
-		sb.WriteString(" состоятся публичные слушания ")
+		sb.WriteString(" ")
 		sb.WriteString(h.Topic[0])
 	} else {
-		sb.WriteString(" состоятся публичные слушания:")
+		sb.WriteString(":")
 		for _, t := range h.Topic {
 			if len(t) > 0 {
 				sb.WriteString("\n - ")
@@ -64,11 +76,26 @@ func (h Hearing) String() string {
 	}
 	sb.WriteString("\n")
 
+	// If multiple places of hearing
+	if !singlePlace {
+		// Dates and places of hearing
+		for i, place := range h.Place {
+			sb.WriteString("\n - ")
+			sb.WriteString(h.Time[i].Format("02.01.2006"))
+			sb.WriteString(" в ")
+			sb.WriteString(h.Time[i].Format("15:04"))
+			sb.WriteString(" в ")
+			sb.WriteString(place)
+		}
+	}
+
+	// Proposals of hearing
 	for _, p := range h.Proposals {
 		sb.WriteString(p)
 		sb.WriteString("\n")
 	}
 
+	// URL of publication
 	sb.WriteString("Ссылка на публикацию: ")
 	sb.WriteString(h.URL)
 	sb.WriteString("\n")
@@ -78,23 +105,33 @@ func (h Hearing) String() string {
 
 // Markdown returns formatted representation of hearing
 func (h Hearing) Markdown() string {
-	if h.Place == "" {
+	if len(h.Place) == 0 {
 		return ""
 	}
-	var sb strings.Builder
-	sb.WriteString("*")
-	sb.WriteString(h.escape(h.Time.Format("02.01.2006")))
-	sb.WriteString(" в ")
-	sb.WriteString(h.escape(h.Time.Format("15:04")))
-	sb.WriteString(" в ")
-	sb.WriteString(h.escape(h.Place))
-	sb.WriteString("*")
 
+	var sb strings.Builder
+
+	singlePlace := len(h.Place) == 1
+
+	if singlePlace {
+		sb.WriteString("*")
+		sb.WriteString(h.escape(h.Time[0].Format("02.01.2006")))
+		sb.WriteString(" в ")
+		sb.WriteString(h.escape(h.Time[0].Format("15:04")))
+		sb.WriteString(" в ")
+		sb.WriteString(h.escape(h.Place[0]))
+		sb.WriteString("*")
+		sb.WriteString(" состоятся публичные слушания")
+	} else {
+		sb.WriteString("Состоятся публичные слушания")
+	}
+
+	// Topics of hearing
 	if len(h.Topic) == 1 {
-		sb.WriteString(" состоятся публичные слушания ")
+		sb.WriteString(" ")
 		sb.WriteString(h.escape(h.Topic[0]))
 	} else {
-		sb.WriteString(" состоятся публичные слушания:")
+		sb.WriteString(":")
 		for _, t := range h.Topic {
 			sb.WriteString(h.escape("\n\n - "))
 			sb.WriteString(h.escape(t))
@@ -102,11 +139,28 @@ func (h Hearing) Markdown() string {
 	}
 	sb.WriteString("\n\n")
 
+	// If multiple places of hearing
+	if !singlePlace {
+		// Dates and places of hearing
+		for i, place := range h.Place {
+			sb.WriteString("\n - ")
+			sb.WriteString("*")
+			sb.WriteString(h.escape(h.Time[i].Format("02.01.2006")))
+			sb.WriteString(" в ")
+			sb.WriteString(h.escape(h.Time[i].Format("15:04")))
+			sb.WriteString(" в ")
+			sb.WriteString(h.escape(place))
+			sb.WriteString("*")
+		}
+	}
+
+	// Proposals of hearing
 	for _, p := range h.Proposals {
 		sb.WriteString(h.escape(p))
 		sb.WriteString("\n\n")
 	}
 
+	// URL of publication
 	sb.WriteString("[Ссылка на публикацию](")
 	sb.WriteString(h.URL)
 	sb.WriteString(")\n")

@@ -334,7 +334,7 @@ func TestParser_prepare(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := p.prepare(tt.input)
+			got, err := p.prepareSingle(tt.input)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
